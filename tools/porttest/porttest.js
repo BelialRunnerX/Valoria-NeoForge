@@ -413,7 +413,13 @@ BOSSES.forEach(b => {
     let alive = entitiesOfType(s, 'valoria:' + b.id)
     log(alive == 1 && p.health > 0, 'boss ' + b.id + ' fought a survival player for 15 s without vanishing', 'player hp ' + p.health.toFixed(1) + ', boss present=' + alive)
     // generic_kill bypasses temporary invulnerability (e.g. Dryador during an animation) but still credits the player
+    let others = []
+    s.entities.forEach(e => { let t = String(e.type); if (t != 'minecraft:player' && t != 'valoria:' + b.id) others.push(t) })
+    info('boss ' + b.id + ' about to be killed; other entities present: ' + (others.length ? others.join(',') : 'none'))
     cmd(s, 'damage @e[type=valoria:' + b.id + ',limit=1] 100000 minecraft:generic_kill by @a[limit=1]')
+  })
+  at(start + 303, 'boss ' + b.id + ' just after kill', (s, p) => {
+    info('boss ' + b.id + ' 3 ticks after kill damage: present=' + entitiesOfType(s, 'valoria:' + b.id) + ' items on ground: ' + itemDrops(s).join(','))
   })
   at(start + 320, 'boss ' + b.id + ' loot', (s, p) => {
     let drops = itemDrops(s)
@@ -652,7 +658,7 @@ at(MN + 80, 'x max nihility result', (s, p) => {
 const ST = FOCUS == 'x' ? 110 : bt + 450
 function be(s, x, y, z) { return s.getLevel('minecraft:overworld').getBlockEntity(new (J('net.minecraft.core.BlockPos'))(x, y, z)) }
 function outOf(s, x, y, z) { try { return String(be(s, x, y, z).itemOutputHandler.getStackInSlot(0)) } catch (e) { return 'ERR ' + e } }
-const STATIONS = { jewel: [2014, 1992], jewelKjs: [2016, 1992], kilnKjs: [2014, 1996], crusherKjs: [2016, 1996], keg: [2014, 2000], soul: [2016, 2000] }
+const STATIONS = { jewel: [2014, 1992], jewelKjs: [2016, 1992], kilnKjs: [2014, 1996], crusherKjs: [2016, 1996], keg: [2014, 2000], soul: [2016, 2000], kegKjs: [2014, 2004], manipKjs: [2016, 2004] }
 at(ST - 4, 'x schema probe', (s, p) => {
   ['Kiln', 'Jewelry', 'Crusher', 'Keg', 'Manipulator', 'HeavyWorkbench'].forEach(n => {
     try {
@@ -668,10 +674,10 @@ at(ST - 2, 'x station recipe registry', (s, p) => {
   try {
     let kiln = s.recipeManager.getAllRecipesFor(J('com.idark.valoria.registries.item.recipe.KilnRecipe$Type').INSTANCE).size()
     let RL = J('net.minecraft.resources.ResourceLocation')
-    let k = s.recipeManager.byKey(RL.parse('porttest:kiln_dirt_to_diamond')).isPresent()
-    let j = s.recipeManager.byKey(RL.parse('porttest:jewelry_dirt_to_emerald')).isPresent()
-    let c = s.recipeManager.byKey(RL.parse('porttest:crusher_dirt')).isPresent()
-    log(k && j && c, 'KubeJS schemas (valoria.kiln / jewelry / crusher) register recipes from porttest_recipes.js', 'kiln recipes=' + kiln + ' (15 data + 1 script) present: kiln=' + k + ' jewelry=' + j + ' crusher=' + c)
+    let present = {}
+    ;['kiln_dirt_to_diamond', 'jewelry_dirt_to_emerald', 'crusher_dirt', 'keg_dirt_to_apple', 'workbench_dirt_to_stick', 'manipulator_dirt_to_gold'].forEach(id => { present[id] = s.recipeManager.byKey(RL.parse('porttest:' + id)).isPresent() })
+    let all = Object.keys(present).every(k => present[k])
+    log(all, 'all six KubeJS schemas (kiln, jewelry, crusher, keg_brewery, heavy_workbench, manipulator) register recipes from porttest_recipes.js', 'kiln recipes=' + kiln + ' (15 data + 1 script); ' + JSON.stringify(present))
   } catch (e) { log(false, 'recipe registry readable from script', '' + e) }
 })
 at(ST, 'x station setup', (s, p) => {
@@ -682,6 +688,8 @@ at(ST, 'x station setup', (s, p) => {
   cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.crusherKjs[0] + ' ' + AY + ' ' + STATIONS.crusherKjs[1] + ' valoria:stone_crusher')
   cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.keg[0] + ' ' + AY + ' ' + STATIONS.keg[1] + ' valoria:keg')
   cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.soul[0] + ' ' + AY + ' ' + STATIONS.soul[1] + ' valoria:soul_infuser')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.kegKjs[0] + ' ' + AY + ' ' + STATIONS.kegKjs[1] + ' valoria:keg')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.manipKjs[0] + ' ' + AY + ' ' + STATIONS.manipKjs[1] + ' valoria:elemental_manipulator')
 })
 at(ST + 2, 'x station fill', (s, p) => {
   try {
@@ -692,6 +700,8 @@ at(ST + 2, 'x station fill', (s, p) => {
     let kg = be(s, STATIONS.keg[0], AY, STATIONS.keg[1]); kg.itemHandler.setStackInSlot(0, Item.of('minecraft:sugar_cane')); kg.itemHandler.setStackInSlot(1, Item.of('valoria:bottle'))
     let si = be(s, STATIONS.soul[0], AY, STATIONS.soul[1]); let collector = Item.of('valoria:soul_collector'); si.setSouls(collector, 1000); si.itemHandler.setStackInSlot(0, Item.of('valoria:void_crystal')); si.itemHandler.setStackInSlot(1, collector)
     info('soul collector souls=' + si.getSouls(collector) + ' max=' + si.getMaxSouls(collector))
+    let kk = be(s, STATIONS.kegKjs[0], AY, STATIONS.kegKjs[1]); kk.itemHandler.setStackInSlot(0, Item.of('minecraft:dirt')); kk.itemHandler.setStackInSlot(1, Item.of('valoria:bottle'))
+    let mk = be(s, STATIONS.manipKjs[0], AY, STATIONS.manipKjs[1]); mk.itemHandler.setStackInSlot(0, Item.of('minecraft:dirt')); mk.itemHandler.setStackInSlot(1, Item.of('minecraft:sand'))
     cmd(s, 'item replace entity @a weapon.mainhand with minecraft:dirt')
   } catch (e) { log(false, 'x station fill', '' + e) }
 })
@@ -723,6 +733,11 @@ at(ST + 11, 'x crusher kjs result', (s, p) => {
 at(ST + 90, 'x kiln kjs result', (s, p) => {
   let out = slotItem(block(s, 'minecraft:overworld', STATIONS.kilnKjs[0], AY, STATIONS.kilnKjs[1]).entityData, 2)
   log(out.indexOf('minecraft:diamond') == 0, 'KubeJS-added kiln recipe smelts dirt -> diamond (60 ticks)', 'output: ' + out)
+})
+at(ST + 120, 'x kubejs keg + manipulator results', (s, p) => {
+  let kk = outOf(s, STATIONS.kegKjs[0], AY, STATIONS.kegKjs[1]), mk = outOf(s, STATIONS.manipKjs[0], AY, STATIONS.manipKjs[1])
+  log(kk.indexOf('minecraft:apple') >= 0, 'KubeJS-added keg_brewery recipe brews dirt + bottle -> apple (60 ticks)', 'output=' + kk)
+  log(mk.indexOf('minecraft:gold_ingot') >= 0, 'KubeJS-added manipulator recipe (core "empty") crafts dirt + sand -> gold_ingot (20 ticks)', 'output=' + mk)
 })
 at(ST + 140, 'x jewelry results', (s, p) => {
   let o = outOf(s, STATIONS.jewel[0], AY, STATIONS.jewel[1]), ok = outOf(s, STATIONS.jewelKjs[0], AY, STATIONS.jewelKjs[1])

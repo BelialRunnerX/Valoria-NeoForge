@@ -10,7 +10,7 @@ import java.util.*;
 
 // PORT NOTE: KubeJS 2101 components (OutputItem -> ItemStack, InputItem[][] -> List<Ingredient>); uniqueOutputId -> uniqueId.
 public interface KegRecipeSchema{
-    RecipeKey<ItemStack> OUTPUT = ItemStackComponent.ITEM_STACK.outputKey("output");
+    RecipeKey<ItemStack> OUTPUT = com.idark.valoria.core.compat.kubejs.ValoriaRecipeComponents.ITEM_STACK.instance().outputKey("output"); // PORT NOTE: lenient {"item"|"id","count"} codec
     RecipeKey<Integer> TIME = NumberComponent.INT.otherKey("time");
     RecipeKey<List<Ingredient>> INGREDIENTS = IngredientComponent.INGREDIENT.instance().asList().inputKey("ingredients");
 

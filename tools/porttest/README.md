@@ -13,9 +13,9 @@ and the script drives everything through commands and the game's Java API.
 4. Read `run/logs/kubejs/server.log`; the run ends with `[PORTTEST] DONE <pass>/<total>` after roughly two minutes.
    Check `run/logs/latest.log` for exceptions as well.
 
-`FOCUS = true` at the top of the script runs only the curio / nihility / natural-crypt sections for quick iteration.
+`FOCUS` at the top of the script selects `'all'` (everything), `'focus'` (curio / nihility / natural-crypt sections) or `'x'` (the newest checks, names prefixed `x `) for quick iteration.
 
-## What it checks (last full run 2026-09-24: 56/56)
+## What it checks (last full run 2026-09-24: 57/58 — the Necromancer treasure bag failed to appear once in seven runs, under investigation)
 
 | Area | Check |
 |---|---|
@@ -36,7 +36,7 @@ and the script drives everything through commands and the game's Java API.
 | Item codex unlock | holding a portal frame shard unlocks `valoria:valoria_portal` via the inventory scan |
 | Max nihility | 97 % nihility kills a survival player (default `maxNihilityAction = KILL`); with `TELEPORT` in `config/valoria/server.toml` the check expects a teleport to the respawn point and a nihility reset instead; the harness revives the player afterwards |
 | Stations | jewelry table (empty_gazer + amber_gem → amber_golden_gazer), keg (sugar_cane + bottle → coke_bottle), soul infuser (charged soul collector fills a void_crystal), all through the block entities' item handlers |
-| KubeJS | `porttest_recipes.js` adds a kiln, a jewelry and a crusher recipe through the mod's schemas; the harness checks they exist in the recipe manager and that the kiln, jewelry table and crusher execute them |
+| KubeJS | `porttest_recipes.js` adds one recipe through each of the six schemas; the harness checks they exist in the recipe manager and that the kiln, jewelry table, crusher, keg and elemental manipulator (core `empty`) execute theirs |
 
 Run `porttest_recipes.js` alongside `porttest.js` (same folder) for the KubeJS rows.
 

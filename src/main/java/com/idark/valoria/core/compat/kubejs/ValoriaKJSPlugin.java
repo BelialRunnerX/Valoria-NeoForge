@@ -15,6 +15,14 @@ public class ValoriaKJSPlugin implements KubeJSPlugin{
     public void init() {
     }
 
+    // PORT NOTE (upstream bug fix): the plugin is discovered through src/main/resources/kubejs.plugins.txt, which upstream
+    // never shipped - on 1.20.1 this class was dead code and event.recipes.valoria.* did not exist.
+    @Override
+    public void registerRecipeComponents(dev.latvian.mods.kubejs.recipe.component.RecipeComponentTypeRegistry registry) {
+        registry.register(ValoriaRecipeComponents.ITEM_STACK);
+        registry.register(ValoriaRecipeComponents.COUNTED_INGREDIENT);
+    }
+
     @Override
     public void registerRecipeSchemas(RecipeSchemaRegistry registry) {
         registry.register(Valoria.loc("kiln"), KilnRecipeSchema.SCHEMA);
