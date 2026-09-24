@@ -4,6 +4,7 @@ import net.minecraft.core.registries.*;
 import net.minecraft.core.*;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.*;
+import net.minecraft.world.item.*;
 import net.minecraft.world.item.context.*;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.block.*;
@@ -31,12 +32,21 @@ public class CupBlock extends Block implements SimpleWaterloggedBlock{
         return shape;
     }
 
-    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit){
-        if(pPlayer.getAbilities().mayBuild && pPlayer.getItemInHand(pHand).isEmpty()){
+    // PORT NOTE (runtime fix): Block#use was removed in 1.21 and the original override (no @Override) had become an unused
+    // overload. Empty-hand clicks are handled by useWithoutItem; clicks with an item fall through to the default block
+    // interaction exactly as the old PASS did.
+    @Override
+    protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, BlockHitResult pHit){
+        if(pPlayer.getAbilities().mayBuild && pPlayer.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()){
             return InteractionResult.sidedSuccess(pLevel.isClientSide);
         }else{
             return InteractionResult.PASS;
         }
+    }
+
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack pStack, BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit){
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     public boolean canBeReplaced(BlockState pState, BlockPlaceContext pUseContext){

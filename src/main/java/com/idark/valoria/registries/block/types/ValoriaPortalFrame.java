@@ -82,7 +82,10 @@ public class ValoriaPortalFrame extends Block{
         }
     }
 
-    public boolean isPathfindable(BlockState p_196266_1_, BlockGetter p_196266_2_, BlockPos p_196266_3_, PathComputationType p_196266_4_){
+    // PORT NOTE (runtime fix): isPathfindable lost its BlockGetter/BlockPos parameters in 1.21; the old signature (no
+    // @Override) had silently stopped overriding anything.
+    @Override
+    protected boolean isPathfindable(BlockState state, PathComputationType type){
         return false;
     }
 }

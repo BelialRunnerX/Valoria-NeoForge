@@ -63,7 +63,20 @@ public class CrusherBlock extends Block implements EntityBlock{
         }
     }
 
-    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit){
+    // PORT NOTE (runtime fix): Block#use(BlockState, Level, BlockPos, Player, InteractionHand, BlockHitResult) no longer
+    // exists in 1.21 (split into useWithoutItem/useItemOn). The original method had no @Override, so it compiled as an
+    // unused overload and the crusher silently ignored right-clicks in the first play test. Both new hooks now route to it.
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit){
+        return interact(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit){
+        return com.idark.valoria.util.BlockInteraction.toItemResult(interact(state, level, pos, player, hand, hit));
+    }
+
+    public InteractionResult interact(BlockState state, Level world, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit){
         CrusherBlockEntity tile = (CrusherBlockEntity)world.getBlockEntity(pos);
         ItemStack stack = player.getItemInHand(handIn).copy();
         ItemStack tileStack = tile.getItemHandler().getItem(0);
