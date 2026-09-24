@@ -15,11 +15,15 @@ public interface OnDungeonVisitListener{
         Structure structureType = serverLevel.registryAccess().registryOrThrow(Registries.STRUCTURE).get(structureKey);
         if(structureType == null) return false;
         var structure = serverLevel.structureManager().getStructureWithPieceAt(player.blockPosition(), structureType);
+        // PORT NOTE: outside a matching structure this is StructureStart.INVALID_START whose getBoundingBox() throws ("Unable to
+        // calculate boundingbox without pieces"). 1.20.1 had the same hole but the caller (CapabilityEvents.onServerTick) never ran.
+        if(!structure.isValid()) return false;
         return structure.getBoundingBox().isInside(player.getBlockX(), player.getBlockY(), player.getBlockZ());
     }
 
     default boolean isPlayerInStructure(Player player, ServerLevel serverLevel, TagKey<Structure> tag) {
         var structure = serverLevel.structureManager().getStructureWithPieceAt(player.blockPosition(), tag);
+        if(!structure.isValid()) return false; // PORT NOTE: see above
         return structure.getBoundingBox().isInside(player.getBlockX(), player.getBlockY(), player.getBlockZ());
     }
 }
