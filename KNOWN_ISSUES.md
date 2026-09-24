@@ -46,15 +46,16 @@ Status legend: **Open** (needs a fix), **Upstream** (present in the original For
 
 ## Unverified in game
 
-**Verified by the automated harness (`tools/porttest`, 2026-09-24, 42/46 checks; the rest were test artefacts):** portal ring formation, Overworld → Valoria travel through a real portal, return-portal generation and the trip back; kiln recipe execution (100 ticks, vanilla furnace as control); `/enchant` availability of bleeding / explosive_flame / accuracy on their supported items, exclusivity with Fire Aspect and refusal on unsupported items; Curios attribute bonuses applied and removed through the right-click and API paths (ruby, health and state-dependent eye necklaces); nihility damage at 60 %; dispenser behaviour for Valoria arrows; the music disc playing in a jukebox; painting variants; all 22 living entity types spawning; 15-second boss fights against a survival player and treasure-bag drops for Necromancer, Dryador, Firron and Wicked Crystal; crypt generation with loot containers; the `valoria:crypt` codex page unlocking when standing in a naturally generated crypt (dungeon-visit handler); boss-kill and dimension-visit codex unlocks.
+**Verified by the automated harness (`tools/porttest`, 2026-09-24, 49/49 checks):** stone crusher insert/crush with a pickaxe and its loot; Bleeding III applying `valoria:bleeding` in melee; the `neoforge:strippables` data map; the item-based codex unlock (portal frame shard) and the `crushables` unlock; the max-nihility KILL action at 97 %; portal ring formation, Overworld → Valoria travel through a real portal, return-portal generation and the trip back; kiln recipe execution (100 ticks, vanilla furnace as control); `/enchant` availability of bleeding / explosive_flame / accuracy on their supported items, exclusivity with Fire Aspect and refusal on unsupported items; Curios attribute bonuses applied and removed through the right-click and API paths (ruby, health and state-dependent eye necklaces); nihility damage at 60 %; dispenser behaviour for Valoria arrows; the music disc playing in a jukebox; painting variants; all 22 living entity types spawning; 15-second boss fights against a survival player and treasure-bag drops for Necromancer, Dryador, Firron and Wicked Crystal; crypt generation with loot containers; the `valoria:crypt` codex page unlocking when standing in a naturally generated crypt (dungeon-visit handler); boss-kill and dimension-visit codex unlocks.
 
 Still not exercised:
 
 - Boss music disc drop chance, King Crab, stat amplification per difficulty; boss spells were only observed not to crash for 15 s each.
-- Max-nihility action (KILL / TELEPORT variants), magma charge HUD, damage-indicator numbers versus 1.20.1.
-- Codex unlocks from advancements; toasts; drag/scroll.
-- JEI recipe categories, alchemy station and its upgrade, crusher crushing with a tool (needs a real click), keg/manipulator/soul-infuser recipe execution.
-- Enchanting-table roll rates and anvil combining (only `/enchant` was used), Bleeding proc rate in combat.
+- Max-nihility TELEPORT variant (needs a config change and world restart), magma charge HUD, damage-indicator numbers versus 1.20.1.
+- Codex toasts and drag/scroll (unlocks from kills, dimension visit, dungeon visit and held items are verified).
+- JEI recipe categories, alchemy station and its upgrade, keg/manipulator/soul-infuser recipe execution.
+- Enchanting-table roll rates and anvil combining (only `/enchant` was used).
+- Entity eye heights were compared statically with upstream's `getStandingEyeHeight` values (all nine match, the three `height - 0.28125` cases resolve to the same numbers); riding offsets were not.
 - Curios: jewelry bag key bind, glove dyeing, immunity accessories; `/curios replace` issued from a script did nothing (Curios debug command, informational).
 - Items from 1.20.1 worlds (soul collectors, magma charge, poisoned weapons, rotten food, summon books) migrating through `custom_data`.
-- Supporter cloaks (`getSkin()` mixin), KubeJS recipe schemas, Jade/JER pages, HUD layer ordering, strippable logs data map, entity eye heights/riding offsets moved to the type builders.
+- Supporter cloaks (`getSkin()` mixin), KubeJS recipe schemas, Jade/JER pages, HUD layer ordering, entity riding offsets moved to the type builders.

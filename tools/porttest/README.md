@@ -15,7 +15,7 @@ and the script drives everything through commands and the game's Java API.
 
 `FOCUS = true` at the top of the script runs only the curio / nihility / natural-crypt sections for quick iteration.
 
-## What it checks (last full run 2026-09-24: 42/46, the 4 failures were test artefacts that are now informational)
+## What it checks (last full run 2026-09-24: 49/49)
 
 | Area | Check |
 |---|---|
@@ -30,6 +30,11 @@ and the script drives everything through commands and the game's Java API.
 | Entities | all 22 living entity types exist 40 ticks after `/summon` (re-tested alone if missing from the shared box) |
 | Bosses | Necromancer, Dryador, Firron, Wicked Crystal each fight a survival player for 15 s, then die to a player-credited kill and drop their treasure bag |
 | Structures | `/place structure valoria:crypt` produces thousands of Valoria blocks and loot containers; a naturally generated crypt start is resolved and standing inside it unlocks the `valoria:crypt` codex page through the dungeon-visit handler |
+| Stone crusher | `CrusherBlock.interact` stores an amber gem, a pickaxe (`#valoria:stone_crusher_tool`) crushes it and drops the `gem_crashing` loot; using it unlocks the `valoria:crushables` codex page |
+| Bleeding | a Bleeding III sword applies the `valoria:bleeding` effect within 40 `Player.attack` hits |
+| Data maps | `neoforge:strippables` maps `shade_log` → `stripped_shade_log` |
+| Item codex unlock | holding a portal frame shard unlocks `valoria:valoria_portal` via the inventory scan |
+| Max nihility | 97 % nihility kills a survival player (default `maxNihilityAction = KILL`); the harness revives the player afterwards |
 
 Informational lines (not counted): `/curios replace` from a script, structure references at a `/place`-d structure.
 

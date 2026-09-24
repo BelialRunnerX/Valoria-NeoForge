@@ -4,7 +4,7 @@ Newest first. The mod version stays `1.21.1-1.0.4.2` (upstream Valoria 1.0.4.2 c
 
 ## 2026-09-24 — automated in-game test harness
 
-- **Added** `tools/porttest/porttest.js` (KubeJS server script) and the `clientAuto` run configuration (`gradlew runClientAuto` quick-plays the `PortTest` world). The script drives 46 checks with commands and the game API and logs `[PORTTEST] PASS/FAIL` lines — no mouse or keyboard needed. Last run 42/46; the 4 failures were test artefacts, now informational. Details and gotchas in `tools/porttest/README.md`; the verified list moved into [KNOWN_ISSUES.md](KNOWN_ISSUES.md). No mod code changed in this entry.
+- **Added** `tools/porttest/porttest.js` (KubeJS server script) and the `clientAuto` run configuration (`gradlew runClientAuto` quick-plays the `PortTest` world). The script drives 49 checks with commands and the game API and logs `[PORTTEST] PASS/FAIL` lines — no mouse or keyboard needed. Last full run 49/49. Details and gotchas in `tools/porttest/README.md`; the verified list moved into [KNOWN_ISSUES.md](KNOWN_ISSUES.md). No mod code changed in this entry.
 
 ## 2026-09-24 — fixes from the maintainer's own play test
 

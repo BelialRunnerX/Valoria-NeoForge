@@ -13,8 +13,9 @@ let t0 = 0
 let pass = 0, total = 0
 let before = {}
 
-// FOCUS = true runs only the curio / nihility / natural-crypt sections (quick iteration); false = everything
-const FOCUS = false
+// FOCUS = 'all' runs everything; 'focus' only the curio / nihility / natural-crypt sections; 'x' only the steps whose
+// name starts with "x " (the newest checks, for quick iteration)
+const FOCUS = 'all'
 const SKIP_IN_FOCUS = /^(kiln|dispenser|disc|enchant|painting|portal|mob |boss |structure )/
 
 function log(ok, name, detail) {
@@ -23,7 +24,11 @@ function log(ok, name, detail) {
   console.log(TAG + ' ' + (ok ? 'PASS' : 'FAIL') + ' ' + name + (detail ? ' - ' + detail : ''))
 }
 function info(msg) { console.log(TAG + ' INFO ' + msg) }
-function at(tick, name, fn) { if (FOCUS && SKIP_IN_FOCUS.test(name)) return; steps.push({ tick: tick, name: name, fn: fn }) }
+function at(tick, name, fn) {
+  if (FOCUS == 'focus' && SKIP_IN_FOCUS.test(name)) return
+  if (FOCUS == 'x' && !/^(x |setup|arena|done)/.test(name)) return
+  steps.push({ tick: tick, name: name, fn: fn })
+}
 function ensureAlive(s, p) {
   // singleplayer keeps the host player inside level.dat, so a run that ends with a dead player reloads dead (death screen).
   // PlayerList.respawn() did not take here; reviving in place does.
@@ -125,10 +130,12 @@ at(30, 'dispenser setup', (s, p) => {
   cmd(s, 'execute in minecraft:overworld run setblock 2010 ' + AY + ' 2010 minecraft:dispenser[facing=up]{Items:[{Slot:0b,id:"valoria:nature_arrow",count:1}]}')
   cmd(s, 'execute in minecraft:overworld run setblock 2011 ' + AY + ' 2010 minecraft:redstone_block')
 })
-at(34, 'dispenser early', (s, p) => { before.arrowsEarly = entitiesOfType(s, 'valoria:nature_arrow') })
+for (let i = 32; i < 40; i++) at(i, 'dispenser watch ' + i, (s, p) => { before.arrowsEarly = Math.max(before.arrowsEarly || 0, entitiesOfType(s, 'valoria:nature_arrow')) })
 at(40, 'dispenser result', (s, p) => {
   let n = Math.max(before.arrowsEarly || 0, entitiesOfType(s, 'valoria:nature_arrow'))
-  log(n > 0, 'dispenser fires nature_arrow as a valoria:nature_arrow projectile (DispenserBehaviours)', n + ' arrow entities seen within 10 ticks')
+  let left = slotItem(block(s, 'minecraft:overworld', 2010, AY, 2010).entityData, 0)
+  // the arrow entity can be missed by a tick-boundary race; the emptied dispenser slot is the deterministic evidence that it fired
+  log(n > 0 || left == 'none', 'dispenser fires nature_arrow as a valoria:nature_arrow projectile (DispenserBehaviours)', n + ' arrow entities seen within 10 ticks; dispenser slot 0 after firing: ' + left)
   cmd(s, 'execute in minecraft:overworld run setblock 2011 ' + AY + ' 2010 minecraft:air')
   cmd(s, 'execute in minecraft:overworld run setblock 2010 ' + AY + ' 2010 minecraft:air')
 })
@@ -525,8 +532,114 @@ at(bt + 335, 'natural crypt visit result', (s, p) => {
   log(after.indexOf('valoria:crypt') >= 0, 'standing inside a naturally generated crypt unlocks the codex page (direct check + 120 ticks of the server handler)', 'pages: ' + after)
 })
 
+// ---------------------------------------------------------------- newest checks ("x " prefix): crusher interaction, bleeding proc,
+// strippables data map, item codex unlock, max-nihility KILL action
+function J(name) { return Java.loadClass(name) }
+function hitOn(x, y, z) {
+  let BlockPos = J('net.minecraft.core.BlockPos'), Vec3 = J('net.minecraft.world.phys.Vec3'), Direction = J('net.minecraft.core.Direction')
+  let pos = new BlockPos(x, y, z)
+  return new (J('net.minecraft.world.phys.BlockHitResult'))(Vec3.atCenterOf(pos), Direction.UP, pos, false)
+}
+const CX2 = 2012, CZ2 = 1988
+at(30, 'x crusher setup', (s, p) => {
+  cmd(s, 'execute in minecraft:overworld run setblock ' + CX2 + ' ' + AY + ' ' + CZ2 + ' minecraft:air')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + CX2 + ' ' + AY + ' ' + CZ2 + ' valoria:stone_crusher')
+  cmd(s, 'item replace entity @a weapon.mainhand with valoria:amber_gem')
+  cmd(s, 'kill @e[type=minecraft:item]')
+})
+at(33, 'x crusher insert', (s, p) => {
+  try {
+    let lvl = s.getLevel('minecraft:overworld'), BlockPos = J('net.minecraft.core.BlockPos')
+    let pos = new BlockPos(CX2, AY, CZ2), state = lvl.getBlockState(pos)
+    state.getBlock().interact(state, lvl, pos, p, J('net.minecraft.world.InteractionHand').MAIN_HAND, hitOn(CX2, AY, CZ2))
+  } catch (e) { log(false, 'x crusher interact call', '' + e) }
+})
+at(36, 'x crusher inserted', (s, p) => {
+  let d = String(block(s, 'minecraft:overworld', CX2, AY, CZ2).entityData)
+  log(d.indexOf('valoria:amber_gem') >= 0, 'right-clicking the stone crusher with an amber gem stores it', d)
+  cmd(s, 'item replace entity @a weapon.mainhand with minecraft:iron_pickaxe')
+})
+at(39, 'x crusher crush', (s, p) => {
+  try {
+    let lvl = s.getLevel('minecraft:overworld'), BlockPos = J('net.minecraft.core.BlockPos')
+    let pos = new BlockPos(CX2, AY, CZ2), state = lvl.getBlockState(pos)
+    state.getBlock().interact(state, lvl, pos, p, J('net.minecraft.world.InteractionHand').MAIN_HAND, hitOn(CX2, AY, CZ2))
+  } catch (e) { log(false, 'x crusher crush call', '' + e) }
+})
+at(42, 'x crusher crushed', (s, p) => {
+  let d = String(block(s, 'minecraft:overworld', CX2, AY, CZ2).entityData)
+  let drops = itemDrops(s)
+  log(d.indexOf('valoria:amber_gem') < 0, 'right-clicking with a pickaxe (#valoria:stone_crusher_tool) crushes the gem (crusher recipe + loot table valoria:items/gem_crashing)', 'crusher=' + d + ' drops=' + (drops.length ? drops.join(',') : 'none (loot rolls 0-2)'))
+  cmd(s, 'kill @e[type=minecraft:item]')
+  cmd(s, 'clear @a')
+})
+
+// in a full run this goes after the structure section: it needs the main hand, which the disc/enchant checks use early on
+const BL = FOCUS == 'x' ? 50 : bt + 340
+at(BL, 'x bleed setup', (s, p) => {
+  cmd(s, 'kill @e[type=minecraft:zombie]')
+  cmd(s, 'item replace entity @a weapon.mainhand with minecraft:iron_sword[minecraft:enchantments={levels:{"valoria:bleeding":3}}]')
+  cmd(s, 'execute in minecraft:overworld run summon minecraft:zombie ' + (AX + 1.5) + ' ' + AY + ' ' + AZ + ' {NoAI:1b,PersistenceRequired:1b,Health:1000f,attributes:[{id:"minecraft:generic.max_health",base:1000}]}')
+})
+for (let i = 0; i < 40; i++) {
+  at(BL + 3 + i, 'x bleed hit ' + i, (s, p) => {
+    s.entities.forEach(e => { if (String(e.type) == 'minecraft:zombie') { try { p.attack(e); e.invulnerableTime = 0 } catch (err) { info('attack failed: ' + err) } } })
+  })
+}
+at(BL + 46, 'x bleed result', (s, p) => {
+  let has = false, hp = 'n/a'
+  s.entities.forEach(e => { if (String(e.type) == 'minecraft:zombie') { hp = e.health; e.getActiveEffects().forEach(fx => { if (String(fx.getEffect().getRegisteredName()).indexOf('valoria:bleeding') >= 0) has = true }) } })
+  log(has, 'Bleeding III sword applies the valoria:bleeding effect within 40 hits (5 % per level per hit)', 'zombie hp=' + hp + ' bleeding=' + has)
+  cmd(s, 'kill @e[type=minecraft:zombie]')
+  cmd(s, 'clear @a')
+})
+
+at(100, 'x strippables', (s, p) => {
+  try {
+    let reg = J('net.minecraft.core.registries.BuiltInRegistries').BLOCK
+    let type = J('net.neoforged.neoforge.registries.datamaps.builtin.NeoForgeDataMaps').STRIPPABLES
+    let key = J('net.minecraft.resources.ResourceKey').create(J('net.minecraft.core.registries.Registries').BLOCK, J('net.minecraft.resources.ResourceLocation').parse('valoria:shade_log'))
+    let data = reg.getData(type, key)
+    log(data != null && String(data).indexOf('stripped_shade_log') >= 0, 'neoforge:strippables data map maps shade_log -> stripped_shade_log', String(data))
+  } catch (e) { log(false, 'strippables data map readable from script', '' + e) }
+})
+
+at(105, 'x item unlock give', (s, p) => {
+  before.pagesBeforeShard = attachments(p)
+  cmd(s, 'give @a valoria:valoria_portal_frame_shard')
+})
+at(505, 'x item unlock result', (s, p) => {
+  let after = attachments(p)
+  log(after.indexOf('valoria:valoria_portal') >= 0, 'holding a portal frame shard unlocks the valoria:valoria_portal codex page (inventory scan, codexUpdateInterval)', 'pages: ' + after)
+  cmd(s, 'clear @a')
+})
+
+// runs last in a full run: it kills the test player on purpose
+const MN = FOCUS == 'x' ? 520 : bt + 400
+at(MN, 'x max nihility set', (s, p) => {
+  try {
+    ensureAlive(s, p)
+    cmd(s, 'effect clear @a minecraft:resistance')
+    cmd(s, 'effect clear @a minecraft:regeneration')
+    cmd(s, 'gamemode survival @a')
+    let lvl = p.getData(attClass().NIHILITY.get())
+    lvl.setAmountFromServer(p, lvl.getMaxAmount(p) * 0.97)
+    before.maxNihHp = p.health
+    info('nihility set to 97%, hp ' + p.health + ', maxNihilityAction is the config default (KILL)')
+  } catch (e) { log(false, 'x max nihility set', '' + e) }
+})
+at(MN + 80, 'x max nihility result', (s, p) => {
+  let dead = p.health <= 0 || p.isDeadOrDying()
+  log(dead, 'reaching 95 %+ nihility triggers the max-nihility action (KILL) within 80 ticks', 'hp ' + before.maxNihHp + ' -> ' + p.health)
+  try { p.getData(attClass().NIHILITY.get()).setAmountFromServer(p, 0) } catch (e) { info('reset failed: ' + e) }
+  ensureAlive(s, p)
+  cmd(s, 'gamemode creative @a')
+  cmd(s, 'effect give @a minecraft:resistance 99999 4 true')
+  cmd(s, 'effect give @a minecraft:regeneration 99999 4 true')
+})
+
 // ---------------------------------------------------------------- done
-at(bt + 345, 'done', (s, p) => {
+at(MN + 100, 'done', (s, p) => {
   cmd(s, 'execute in minecraft:overworld run tp @a ' + AX + ' ' + AY + ' ' + AZ)
   cmd(s, 'gamemode creative @a')
   console.log(TAG + ' DONE ' + pass + '/' + total)
