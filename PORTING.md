@@ -11,7 +11,23 @@ Status (2026-09-23): **working build, not fully validated** — client starts, c
 
 Runtime problems found and fixed while booting datagen (all documented in the phase tables): Attribute holder cast in `AttributeMixin`, NeoForge event-bus strictness (no-listener `register`, static handlers, abstract `InputEvent`), items resolving particle holders eagerly, wrong-loader jars from Modrinth (Moonlight, JER), missing JitPack repository for KubeJS.
 
+## Nature of the changes — how to read this document and the code comments
+
+Converting to NeoForge 1.21.1 required three kinds of change. Every `// PORT NOTE:` comment in the code is prefixed accordingly, and the tables below use the same wording:
+
+| Marker | Meaning | Where it applies |
+|---|---|---|
+| `PORT NOTE:` (no qualifier) | **Mechanical API translation.** Same behaviour as 1.20.1; only the API the code talks to changed (Forge → NeoForge class/method renames, NBT → data components, `RegistryObject` → `DeferredHolder`, new event names, new rendering calls, 1.21 JSON formats). This is the overwhelming majority of the 449 sites. | Everywhere |
+| `PORT NOTE (behaviour change …):` | **Runtime behaviour differs from 1.20.1.** Either the platform offers no equivalent (feature not available), the platform forced a different timing, or a tolerance had to be added. Each one is also listed in KNOWN_ISSUES.md → "Changed behaviour". | `LegacyIdRemap` / `Events.onMissingMappings` (no `MissingMappingsEvent`), `Events` FillBucket handler (no event), `Events.onLivingHurt` and Tridot percent armour (`LivingIncomingDamageEvent` timing), `CapabilityEvents.onServerTick` and Tridot `Events.onServerTick` (previously dead static handlers are now live), `ValoriaAttachments` (also copied on non-death clones), `AbilityRegistry.register` (idempotent), data-pack fixes to upstream typos that 1.20.1 turned into air |
+| `PORT NOTE (upstream bug fix):` | **A latent bug of the original code was fixed** because 1.21 or the now-active handlers exposed it. | `OnDungeonVisitListener.isPlayerInStructure`, Tridot `MusicModifier.DungeonMusic` (bounding box of an invalid structure start) |
+| `PORT NOTE (API change …):` | **Tridot's public API differs for dependent mods** (Tridot repository only). | enchantable tags instead of `EnchantmentCategory`, side-loaded model keys, `addCustomModel`, `getBowModels`/`getCrossbowModels`, loot target aliases |
+| `PORT NOTE (port metadata - deliberate redirect):` | **Not a platform change**: repository/URL metadata deliberately points at the port instead of the original author. | `neoforge.mods.toml`, `ClientEvents` update link, `update.json`, issue templates, `CONTRIBUTING.md` |
+
+Things that did **not** change: gameplay values (damage, durations, costs, weights), item/block/entity ids, config keys and defaults, loot table contents (apart from the format conversion and the two documented summon-book entries), recipes (apart from format and two typo fixes), textures, models, sounds, structures and worldgen parameters.
+
 ## Dependency versions (all NeoForge 1.21.1 builds, verified on Modrinth/Maven)
+
+Exact versions with download links are also in README.md → "Requirements and tested versions".
 
 | Mod | 1.20.1 (Forge) | 1.21.1 (NeoForge) | Integration status |
 |---|---|---|---|

@@ -1,5 +1,7 @@
 # Valoria — NeoForge 1.21.1 port
 
+> 🇷🇺 Русская версия документации: [README.ru.md](README.ru.md) · [PORTING.ru.md](PORTING.ru.md) · [CHANGELOG.ru.md](CHANGELOG.ru.md) · [KNOWN_ISSUES.ru.md](KNOWN_ISSUES.ru.md). The English documentation is the authoritative version.
+
 This repository is a **community port of [Valoria](https://github.com/IriDark/Valoria)** (by IriDark and contributors) from Forge 1.20.1 to **NeoForge 1.21.1**.
 
 ## Please read before opening an issue
@@ -18,9 +20,34 @@ This repository is a **community port of [Valoria](https://github.com/IriDark/Va
 
 Every non-trivial rewrite (registration, events, networking, item NBT → data components, capabilities → attachments, enchantments → data, portal, rendering, mixins, the data pack) is documented in [PORTING.md](PORTING.md), and each code site carries a `// PORT NOTE:` comment explaining the change. The mod was ported in full — no feature was stubbed out or removed.
 
+## Requirements and tested versions
+
+The port is built and tested against these exact versions. Newer patch releases will usually work, but these are the ones known to.
+
+| Component | Version | Where to get it |
+|---|---|---|
+| Minecraft | 1.21.1 | — |
+| Java | 21 (Temurin 21.0.12 used) | https://adoptium.net/ |
+| **NeoForge** | **21.1.251** (accepted range `[21.1,)`) | https://neoforged.net/ · https://projects.neoforged.net/neoforged/neoforge |
+| **Tridot (NeoForge port)** | **1.21.1-1.0.169** (range `[1.21.1-1.0.169,)`) | https://github.com/BelialRunnerX/Tridot-NeoForge — required; the Forge 1.20.1 Tridot from CurseForge/Modrinth will **not** work |
+| **Curios API** | **9.5.1+1.21.1** (range `[9,)`) | https://modrinth.com/mod/curios · https://www.curseforge.com/minecraft/mc-mods/curios |
+| **GeckoLib** | **4.9.3** for NeoForge 1.21.1 (range `[4.7,)`) | https://modrinth.com/mod/geckolib · https://www.curseforge.com/minecraft/mc-mods/geckolib |
+
+Optional integrations, compiled and tested against:
+
+| Mod | Version | Link |
+|---|---|---|
+| JEI | 19.57.0.447 | https://modrinth.com/mod/jei |
+| Jade | 15.10.6+neoforge | https://modrinth.com/mod/jade |
+| Just Enough Resources (JER) | 1.6.0.17 (NeoForge build) | https://modrinth.com/mod/just-enough-resources-jer |
+| KubeJS / Rhino / Architectury | 2101.7.2-build.377 / 2101.2.8-build.91 / 13.0.11 | https://modrinth.com/mod/kubejs |
+| Dummmmmmy + Moonlight Lib | 1.21-2.1.2 (NeoForge) + 1.21.1-3.6.8 (NeoForge) | https://modrinth.com/mod/mmmmmmmmmmmm · https://modrinth.com/mod/moonlight |
+| Better Combat, Obscure Tooltips, JEED, Enchantment Descriptions, Catalogue | any 1.21.1 build (data/lang only) | — |
+| Tetra | no 1.21 release yet — integration inert | — |
+
 Things players and pack makers need to know:
 
-- **Dependencies:** the [Tridot NeoForge 1.21.1 port](https://github.com/BelialRunnerX/Tridot-NeoForge) (`1.21.1-1.0.169` or newer), Curios 9.x and GeckoLib 4.7+ (built against 4.9.3) for NeoForge 1.21.1. The 1.20.1 Tridot from CurseForge/Modrinth will **not** work.
+- **Dependencies:** see the table above. Install the NeoForge builds of Curios and GeckoLib, not the Forge or Fabric ones.
 - **Integrations:** JEI, Jade, JER, KubeJS, JEED, Enchantment Descriptions, Better Combat, Catalogue and Obscure Tooltips are ported. The Tetra material data is still shipped but inert until Tetra releases for 1.21.
 - **Worlds from 1.20.1:** item NBT is migrated by vanilla into `minecraft:custom_data` and read back from there; player data (codex pages, nihility, magma charge, abilities) keeps its ids. Blocks/items that were *renamed* before 1.0.4 are no longer remapped (NeoForge has no `MissingMappingsEvent`). Back up worlds first.
 - **Enchantments** (Bleeding, Accuracy, Explosive Flame) are data-driven JSON; Valoria's tools and armour use the `minecraft:enchantable/*` tags.

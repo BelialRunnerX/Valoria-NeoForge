@@ -1,0 +1,19 @@
+# История изменений — порт Valoria на NeoForge 1.21.1
+
+> 🇬🇧 Основная версия — [CHANGELOG.md](CHANGELOG.md) (английский; ниже раздела порта там же находится оригинальная история изменений Forge 1.20.1 от авторов мода). Перевод может отставать.
+
+Сначала новые записи. Версия мода остаётся `1.21.1-1.0.4.2` (кодовая база Valoria 1.0.4.2 на момент порта); сборки порта обозначаются датой и коммитом. Каждое изменение в коде помечено комментарием `// PORT NOTE:` и описано в [PORTING.ru.md](PORTING.ru.md); открытые проблемы отслеживаются в [KNOWN_ISSUES.ru.md](KNOWN_ISSUES.ru.md).
+
+## 2026-09-23 — исправления после первых внутриигровых тестов
+
+- `1100cb1` **Исправлено** «Exception in server tick loop: Unable to calculate boundingbox without pieces» через несколько секунд после входа в мир: `OnDungeonVisitListener.isPlayerInStructure` (разблокировка кодекса при посещении данжа) и проверка музыки данжей в Tridot теперь возвращают false, когда игрок вне подходящей структуры. Требует Tridot `c957952` или новее.
+- `78cdfaa` **Исправлено** «Failed to load registries» при нажатии *Создать мир*: 24 числовых провайдера в 12 файлах worldgen/измерения переведены из формы 1.20 `{"value":{...}}` в плоскую форму 1.21; неизвестные идентификаторы блоков, которые 1.20.1 молча превращал в воздух (`valoria:gravel`, `valoria:soul_root`, `minecraft:void_*` в `processor_list/valoria_misc`), исправлены на задуманные блоки.
+- `78cdfaa` **Исправлено** падение выделенного сервера «Attempted to load class LocalPlayer for invalid dist DEDICATED_SERVER» (`PhantasmBow`, `MagmaPacket`, `NihilityPacket` теперь используют sided proxy).
+- `78cdfaa` **Исправлено**: 15 рецептов печи для обжига (kiln) не загружались (`"result"` должен быть `{"id": ...}` для ванильного кодека приготовления), рецепты `jade_crossbow`/`crimtane_axe` тяжёлого верстака (опечатки в оригинале), тег биомов `no_pots` (названия тегов из времён до 1.19), модификатор лута `candy_corn_from_mobs_effect` (`killer` → `attacker`); зарегистрировано размещение спавна для `flesh_sentinel`.
+- `e07bb7c` **Исправлено** падение при первом запуске «Ability Type valoria:description is already registered!»: первопричиной была ошибка ключей моделей в Tridot, из-за которой Minecraft повторно запускал загрузку модов; модели бочки/сферы/кисты в `ValoriaLayers` и их рендереры теперь используют согласованные ключи `standalone`, а `AbilityRegistry.register` терпимо относится к повторному проходу.
+
+## 2026-09-23 — первоначальный порт (`f0dee7d`)
+
+- Forge 1.20.1 / Java 17 → NeoForge 21.1.251 / Java 21, ModDevGradle 2.0.147, Parchment 2024.11.17; зависит от [порта Tridot на NeoForge](https://github.com/BelialRunnerX/Tridot-NeoForge) `1.21.1-1.0.169`, Curios 9.5.1, GeckoLib 4.9.3.
+- Перенесены предметы (NBT → компоненты данных), эффекты, зачарования (данные), сущности, сеть (`CustomPacketPayload`), capabilities → attachments, клиентский рендер/GUI, портал (`Portal`/`DimensionTransition`), datagen, совместимость (JEI 19, Jade 15, JER 1.6, KubeJS 2101) и весь датапак (структура папок 1.21, теги `c:`, форматы рецептов/лута); ничего не удалено.
+- Метаданные репозитория (issue-трекер, update JSON, домашняя страница, внутриигровая ссылка на обновление, руководство для участников) указывают на этот порт, чтобы к автору оригинала не обращались по его поводу.

@@ -347,7 +347,7 @@ public class ClientEvents{
             if(!modInfo.getVersion().getQualifier().equals("0.0NONE") && result.status().shouldDraw()){
                 var newVersion = result.target().toString();
                 Component message = Component.literal("\uD83E\uDEB7 Valoria: ").withStyle(style -> DotStyle.of().color(Pal.verySoftPink)).append(Component.translatable("tooltip.valoria.update_available", newVersion).withStyle(ChatFormatting.WHITE));
-                // PORT NOTE: the update notice is driven by the port's own update.json, so the download link points at the port's
+                // PORT NOTE (port metadata - deliberate redirect): the update notice is driven by the port's own update.json, so the download link points at the port's
                 // releases instead of the original author's CurseForge page (which only carries Forge 1.20.1 builds).
                 var actions = Component.translatable("tooltip.valoria.download").withStyle(style -> style.withUnderlined(true).withFont(Valoria.FONT).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/BelialRunnerX/Valoria-NeoForge/releases")))
                 .append(Component.literal(" | ")

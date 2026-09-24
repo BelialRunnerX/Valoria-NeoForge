@@ -77,7 +77,7 @@ public final class PacketHandler{
         PacketDistributor.sendToPlayer(player, msg);
     }
 
-    /** Players tracking the chunk at {@code pos} that are also within 64 blocks of it (the old TRACKING_CHUNK_AND_NEAR distributor). */
+    /** PORT NOTE: re-implements the removed Forge chunk-tracking distributor — players tracking the chunk at {@code pos} that are also within 64 blocks of it (the old TRACKING_CHUNK_AND_NEAR semantics, unchanged). */
     public static void sendToTracking(Level world, BlockPos pos, CustomPacketPayload msg){
         if(!(world instanceof ServerLevel level)) return;
         var chunkpos = new ChunkPos(pos);

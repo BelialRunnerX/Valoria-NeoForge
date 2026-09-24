@@ -8,7 +8,9 @@ import net.neoforged.neoforge.registries.*;
 import java.util.function.*;
 
 /**
- * PORT NOTE: Forge capabilities attached through {@code AttachCapabilitiesEvent<Entity>} became NeoForge data attachments.
+ * PORT NOTE (behaviour change - superset): Forge capabilities attached through {@code AttachCapabilitiesEvent<Entity>} became NeoForge data attachments.
+ * Ids and NBT layout are identical, but NeoForge also copies attachments on non-death clones (e.g. returning from the End),
+ * where 1.20.1 recreated the capabilities from scratch.
  * The four player capabilities keep their 1.20.1 ids ({@code valoria:pages}, {@code valoria:nihility_level},
  * {@code valoria:magma_level}, {@code valoria:ability_tracker}) and NBT layouts, so saved data is read back unchanged.
  * All four are {@code copyOnDeath}: the old {@code PlayerEvent.Clone} handler copied pages/nihility/magma on every

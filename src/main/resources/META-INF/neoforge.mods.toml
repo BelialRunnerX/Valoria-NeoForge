@@ -4,7 +4,7 @@
 modLoader = "javafml"
 loaderVersion = "${loader_version_range}"
 license = "Code: GPL-3.0 License | Assets: Attribution-NonCommercial 4.0 International"
-# PORT NOTE: issue tracker, update JSON and homepage point at the NeoForge port repository so crash reports and update
+# PORT NOTE (port metadata - deliberate redirect): issue tracker, update JSON and homepage point at the NeoForge port repository so crash reports and update
 # checks for this build do not reach the original author (the port is maintained separately, see README.md).
 issueTrackerURL = "https://github.com/BelialRunnerX/Valoria-NeoForge/issues"
 [[mods]]

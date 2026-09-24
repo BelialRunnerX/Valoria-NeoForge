@@ -111,7 +111,7 @@ public class CapabilityEvents{
         });
     }
 
-    // PORT NOTE: was `static` in 1.20.1. Forge silently skipped static handlers on instance registration (so this never fired),
+    // PORT NOTE (behaviour change): was `static` in 1.20.1. Forge silently skipped static handlers on instance registration (so this never fired),
     // NeoForge refuses to boot instead. Made an instance method, i.e. the dungeon-visit codex check is now active (see PORTING.md).
     @SubscribeEvent
     public void onServerTick(ServerTickEvent.Post event) {

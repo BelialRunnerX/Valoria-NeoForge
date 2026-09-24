@@ -112,7 +112,7 @@ public class Events{
         }
     }
 
-    // PORT NOTE: onMissingMappings(MissingMappingsEvent) was removed: NeoForge 1.21 has no missing-mappings event. The
+    // PORT NOTE (behaviour change - feature not available on NeoForge): onMissingMappings(MissingMappingsEvent) was removed: NeoForge 1.21 has no missing-mappings event. The
     // old-id -> new-id table it applied is preserved in com.idark.valoria.core.LegacyIdRemap (see PORTING.md).
 
     @SubscribeEvent
@@ -320,7 +320,7 @@ public class Events{
     }
 
     /**
-     * PORT NOTE: LivingHurtEvent (pre-armour damage modification) and LivingAttackEvent (cancellation) both became
+     * PORT NOTE (behaviour change - event timing): LivingHurtEvent (pre-armour damage modification) and LivingAttackEvent (cancellation) both became
      * LivingIncomingDamageEvent in NeoForge 21. The former attack handler runs at HIGH priority so its cancellations still
      * happen before this modification pass, mirroring the old attack -> hurt order; cancelled events are not delivered here.
      */
@@ -505,7 +505,9 @@ public class Events{
     // PORT NOTE: Event#isCancelable() no longer exists. Events that are always cancellable in NeoForge call setCanceled
     // directly; the ones that may or may not be (LivingEntityUseItemEvent subclasses, the *Empty click events, which were
     // never cancellable in Forge either) keep the old "only if cancellable" semantics through the ICancellableEvent check.
-    // FillBucketEvent was removed from NeoForge; bucket use is already blocked by the RightClickItem/RightClickBlock handlers.
+    // PORT NOTE (behaviour change - feature not available on NeoForge): the 1.20.1 FillBucketEvent handler (stun cancels bucket
+    // filling/emptying) was removed because NeoForge has no such event; bucket use by a stunned player is only blocked where the
+    // RightClickItem/RightClickBlock handlers below already cancel the interaction.
     @SubscribeEvent
     public void onPlayerLeftClick(PlayerInteractEvent.LeftClickBlock event) {
         Player player = event.getEntity();

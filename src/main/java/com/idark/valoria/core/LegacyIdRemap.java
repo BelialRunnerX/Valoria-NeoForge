@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.*;
 import javax.annotation.*;
 
 /**
- * PORT NOTE: Forge's {@code MissingMappingsEvent} has no NeoForge 1.21 equivalent (registry remapping was removed with
+ * PORT NOTE (behaviour change - feature not available on NeoForge): Forge's {@code MissingMappingsEvent} has no NeoForge 1.21 equivalent (registry remapping was removed with
  * the 1.20.2 registry rewrite), so the old {@code Events#onMissingMappings} handler cannot be wired up. Its mapping
  * table is preserved here so the rename knowledge (shadewood_* -> shade_*, dreadwood_* -> dread_*, ...) is not lost:
  * worlds saved by pre-rename Valoria builds are a 1.20.1-only concern (a 1.20.1 world cannot be opened by this
