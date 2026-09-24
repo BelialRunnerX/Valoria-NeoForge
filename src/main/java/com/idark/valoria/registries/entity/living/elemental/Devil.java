@@ -1,0 +1,310 @@
+package com.idark.valoria.registries.entity.living.elemental;
+
+import net.minecraft.server.level.*;
+import net.minecraft.core.registries.*;
+import com.idark.valoria.*;
+import com.idark.valoria.registries.*;
+import com.idark.valoria.registries.entity.ai.goals.*;
+import com.idark.valoria.registries.entity.ai.movements.*;
+import com.idark.valoria.registries.entity.projectile.*;
+import net.minecraft.core.*;
+import net.minecraft.nbt.*;
+import net.minecraft.sounds.*;
+import net.minecraft.util.*;
+import net.minecraft.world.*;
+import net.minecraft.world.damagesource.*;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.*;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier.*;
+import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.ai.goal.target.*;
+import net.minecraft.world.entity.monster.*;
+import net.minecraft.world.entity.player.*;
+import net.minecraft.world.entity.projectile.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.level.block.state.*;
+import net.minecraft.world.phys.*;
+import pro.komaru.tridot.api.*;
+import pro.komaru.tridot.api.entity.*;
+import pro.komaru.tridot.util.*;
+
+import javax.annotation.*;
+import java.util.*;
+
+public class Devil extends AbstractDevil implements RangedAttackMob{
+    public final AnimationState idleAnimationState = new AnimationState();
+    public AnimationState throwAnimationState = new AnimationState();
+    public int idleAnimationTimeout = 0;
+    public int throwAnimationTimeout = 0;
+    public int hits = 0;
+    public boolean ranged;
+    public SkeletonMovement movement = new SkeletonMovement(this, 64);
+    private int attackAnimationTick;
+
+    public Devil(EntityType<? extends Devil> pEntityType, Level pLevel){
+        super(pEntityType, pLevel);
+    }
+
+    public void handleEntityEvent(byte pId){
+        if(pId == 62 && throwAnimationTimeout <= 0){
+            this.throwAnimationTimeout = 40;
+            this.idleAnimationState.stop();
+            this.throwAnimationState.start(this.tickCount);
+        }
+
+        super.handleEntityEvent(pId);
+    }
+
+    @Nullable
+    public SoundEvent getAmbientSound(){
+        return hasTarget() ? SoundsRegistry.DEVIL_IDLE.get() : SoundEvents.EMPTY;
+    }
+
+    public SoundEvent getHurtSound(DamageSource pDamageSource){
+        return SoundsRegistry.DEVIL_HURT.get();
+    }
+
+    @Override
+    protected SoundEvent getDeathSound(){
+        return SoundsRegistry.DEVIL_DEATH.get();
+    }
+
+    @Override
+    public boolean doHurtTarget(Entity pEntity){
+        this.playSound(SoundsRegistry.DEVIL_ATTACK.get(), 1.0F, 1.0F);
+        return super.doHurtTarget(pEntity);
+    }
+
+    public void tick(){
+        super.tick();
+        if(ranged) movement.setupMovement();
+        if (this.attackAnimationTick > 0) {
+            --this.attackAnimationTick;
+            if (this.attackAnimationTick == this.attackDelay() && this.getTarget() != null && this.getTarget().isAlive()) {
+                double d0 = this.distanceToSqr(this.getTarget().getX(), this.getTarget().getY(), this.getTarget().getZ());
+                float f = (float)Math.sqrt(d0) / 16;
+                float f1 = Mth.clamp(f, 0.1F, 1.0F);
+                this.performRangedAttack(this.getTarget(), f1);
+            }
+        }
+
+        if(this.level().isClientSide()){
+            setupAnimationStates();
+        }
+    }
+
+    @Override
+    public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource damageSource){
+        return false;
+    }
+
+    @Override
+    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos){
+    }
+
+    private void setupAnimationStates(){
+        if(this.idleAnimationTimeout <= 0){
+            this.idleAnimationTimeout = 60;
+            this.idleAnimationState.start(this.tickCount);
+        }else{
+            --this.throwAnimationTimeout;
+            --this.idleAnimationTimeout;
+        }
+    }
+
+    // panic reason
+    public final boolean isLowHP(){
+        return this.getHealth() < 10;
+    }
+
+    @Override
+    public boolean hurt(DamageSource pSource, float pAmount){
+        if(!this.level().isClientSide() && hits < 4){
+            hits++;
+            amplifyStats();
+        }
+
+        return super.hurt(pSource, pAmount);
+    }
+
+    private int amplifyCount;
+
+    // PORT NOTE: AttributeModifier(String name, ...) generated a fresh random UUID per call so modifiers stacked; ids are
+    // ResourceLocations now and duplicates are rejected, hence the per-call counter in the id.
+    private void amplifyStats(){
+        int n = amplifyCount++;
+        this.getAttribute(Attributes.ATTACK_DAMAGE).addTransientModifier(new AttributeModifier(Valoria.loc("devil_amplify_damage_" + n), this.level().getDifficulty().getId() * 0.5f, Operation.ADD_VALUE));
+        this.getAttribute(Attributes.MOVEMENT_SPEED).addTransientModifier(new AttributeModifier(Valoria.loc("devil_amplify_speed_" + n), 0.025f, Operation.ADD_MULTIPLIED_TOTAL));
+    }
+
+    @Override
+    public boolean isLeftHanded() {
+        return false;
+    }
+
+    protected void populateDefaultEquipmentSlots(RandomSource pRandom, DifficultyInstance pDifficulty){
+        this.setItemSlot(EquipmentSlot.MAINHAND, ItemsRegistry.infernalSpear.get().getDefaultInstance());
+    }
+
+    protected void dropCustomDeathLoot(ServerLevel pLevel, DamageSource pSource, boolean pRecentlyHit) {
+    }
+
+    @Nullable
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor pLevel, DifficultyInstance pDifficulty, MobSpawnType pReason, @Nullable SpawnGroupData pSpawnData){
+        RandomSource randomsource = pLevel.getRandom();
+        this.populateDefaultEquipmentSlots(randomsource, pDifficulty);
+        this.ranged = Tmp.rnd.chance(0.25f);
+        return super.finalizeSpawn(pLevel, pDifficulty, pReason, pSpawnData);
+    }
+
+    @Override
+    protected void registerGoals(){
+        super.registerGoals();
+        this.goalSelector.addGoal(0, new MeleeAttackGoal(this, 1, false));
+        this.goalSelector.addGoal(0, new ThrowSpearGoal(this, 1.0D, 12.0F));
+        this.goalSelector.addGoal(0, new ReasonableAvoidEntityGoal<>(this, Player.class, 16, 1.25, 2, isLowHP()));
+
+        if(!ranged) this.goalSelector.addGoal(1, new MoveTowardsTargetGoal(this, 0.9D, 12.0F));
+        this.goalSelector.addGoal(2, new WaterAvoidingRandomStrollGoal(this, 1.2));
+        this.goalSelector.addGoal(3, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(0, new LookAtPlayerGoal(this, Player.class, 8.0F));
+
+        this.targetSelector.addGoal(0, new HurtByTargetGoal(this).setAlertOthers(Devil.class));
+        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));
+    }
+
+    @Override
+    public void performRangedAttack(LivingEntity pTarget, float pVelocity){
+        ThrownSpearEntity spear = new ThrownSpearEntity(this.level(), this, new ItemStack(ItemsRegistry.infernalSpear.get()));
+        double d0 = pTarget.getX() - this.getX();
+        double d1 = pTarget.getY(0.3333333333333333D) - spear.getY();
+        double d2 = pTarget.getZ() - this.getZ();
+        double d3 = Math.sqrt(d0 * d0 + d2 * d2);
+        spear.setBaseDamage(6);
+        spear.shoot(d0, d1 + d3 * (double)0.2F, d2, 1.6F, (float)(14 - this.level().getDifficulty().getId() * 4));
+        this.playSound(SoundEvents.DROWNED_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+        this.level().addFreshEntity(spear);
+    }
+
+    public class ThrowSpearGoal extends AttackGoal{
+        private final Mob mob;
+        private LivingEntity target;
+        private final double speedModifier;
+        private final float attackRadiusSqr;
+
+        public ThrowSpearGoal(RangedAttackMob pRangedAttackMob, double pSpeedModifier, float pAttackRadius){
+            this.mob = (Mob)pRangedAttackMob;
+            this.speedModifier = pSpeedModifier;
+            this.attackRadiusSqr = pAttackRadius * pAttackRadius;
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
+        }
+
+        /**
+         * Returns whether execution should begin. You can also read and cache any state necessary for execution in this
+         * method as well.
+         */
+        public boolean canUse(){
+            LivingEntity livingentity = this.mob.getTarget();
+            if(livingentity == null) return false;
+            if(livingentity.isAlive() && super.canUse()){
+                this.target = livingentity;
+                return (cantReachTarget(target) || isFleeing(mob, 4) || ranged) && mob.hasLineOfSight(target);
+            }
+
+            return false;
+        }
+
+        @Override
+        protected void performAttack(){
+        }
+
+        public boolean raytrace(Mob mob, Vec3 EndPos){
+            Vec3 pos = new Vec3(mob.getX(), mob.getY() + mob.getEyeHeight(), mob.getZ());
+            double pitch = ((mob.getRotationVector().x + 90) * Math.PI) / 180;
+            double yaw = ((mob.getRotationVector().y + 90) * Math.PI) / 180;
+            double X = Math.sin(pitch) * Math.cos(yaw) * 15;
+            double Y = Math.cos(pitch) * 15;
+            double Z = Math.sin(pitch) * Math.sin(yaw) * 15;
+            Vec3 playerPos = mob.getEyePosition();
+            if(ProjectileUtil.getEntityHitResult(mob, playerPos, EndPos, new AABB(pos.x + X - 3D, pos.y + Y - 3D, pos.z + Z - 3D, pos.x + X + 3D, pos.y + Y + 3D, pos.z + Z + 3D), (e) -> true, 15) == null){
+                HitResult hitresult = Utils.Hit.hitResult(playerPos, mob, (e) -> true, EndPos, mob.level());
+                if(hitresult != null){
+                    return switch(hitresult.getType()){
+                        case BLOCK, MISS -> false;
+                        case ENTITY -> true;
+                    };
+                }
+            }
+
+            return false;
+        }
+
+        private Vec3 getRandomPositionWithLineOfSight(Mob mob, LivingEntity target, int radius, int attempts){
+            var random = mob.getRandom();
+            for(int i = 0; i < attempts; i++){
+                double randomX = target.getX() + (random.nextDouble() - 0.5) * radius * 2;
+                double randomY = target.getY();
+                double randomZ = target.getZ() + (random.nextDouble() - 0.5) * radius * 2;
+
+                Vec3 randomPos = new Vec3(randomX, randomY, randomZ);
+                if(raytrace(mob, randomPos)){
+                    return randomPos;
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        public void tick(){
+            super.tick();
+            this.mob.getLookControl().setLookAt(this.target, 30.0F, 30.0F);
+            if(!canUse()) return;
+            if(cantReachTarget(target)){
+                this.mob.getMoveControl().strafe(-0.5F, Tmp.rnd.nextBoolean() ? 0.5F : -0.5F);
+                return;
+            }
+
+            double d0 = this.mob.distanceToSqr(this.target.getX(), this.target.getY(), this.target.getZ());
+            if(!(d0 > (double)this.attackRadiusSqr) && this.mob.getSensing().hasLineOfSight(this.target)){
+                this.mob.getNavigation().stop();
+                return;
+            }else if(!this.mob.getSensing().hasLineOfSight(this.target)){
+                Vec3 randomPos = getRandomPositionWithLineOfSight(this.mob, this.target, 12, 8);
+                if(randomPos != null){
+                    this.mob.getNavigation().moveTo(randomPos.x, randomPos.y, randomPos.z, this.speedModifier);
+                    return;
+                }
+            }
+
+            this.mob.getNavigation().moveTo(target, this.speedModifier);
+        }
+
+        @Override
+        public void onPrepare(){
+            Devil.this.attackAnimationTick = 25;
+            Devil.this.level().broadcastEntityEvent(Devil.this, (byte)62);
+        }
+
+        @Override
+        public int getPreparingTime(){
+            return 25;
+        }
+
+        @Override
+        public int getAttackInterval(){
+            return 50;
+        }
+
+        @Override
+        public SoundEvent getPrepareSound(){
+            return null;
+        }
+
+        @Override
+        public AttackRegistry getAttack(){
+            return EntityStatsRegistry.THROW;
+        }
+    }
+}

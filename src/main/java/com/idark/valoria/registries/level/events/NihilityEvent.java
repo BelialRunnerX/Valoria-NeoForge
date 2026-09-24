@@ -1,0 +1,112 @@
+package com.idark.valoria.registries.level.events;
+
+import net.minecraft.core.registries.*;
+import com.idark.valoria.core.capability.*;
+import com.idark.valoria.core.config.*;
+import com.idark.valoria.registries.*;
+import com.idark.valoria.registries.level.*;
+import net.minecraft.core.*;
+import net.minecraft.resources.*;
+import net.minecraft.server.*;
+import net.minecraft.server.level.*;
+import net.minecraft.sounds.*;
+import net.minecraft.world.*;
+import net.minecraft.world.effect.*;
+import net.minecraft.world.entity.player.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.phys.*;
+import pro.komaru.tridot.util.*;
+
+import java.util.*;
+
+public class NihilityEvent{
+    public static float damagingLevel = 0.5f;
+    public static float criticalLevel = 0.75f;
+
+    public static void tick(INihilityLevel nihilityLevel, ServerPlayer player) {
+        Level level = player.level();
+        Difficulty difficulty = level.getDifficulty();
+
+        float max = Math.max(1.0F, nihilityLevel.getMaxAmount(player));
+        float amount = nihilityLevel.getAmount();
+
+        if (level.dimension() == LevelGen.VALORIA_KEY) {
+            if (difficulty == Difficulty.PEACEFUL || player.hasEffect(EffectsRegistry.NIHILITY_PROTECTION)) {
+                return;
+            }
+
+            int resilienceTicks = (int) (player.getAttributeValue(AttributeReg.NIHILITY_RESILIENCE) * 20);
+            if (resilienceTicks > 0 && player.tickCount % resilienceTicks == 0) {
+                double resistance = player.getAttributeValue(AttributeReg.NIHILITY_RESISTANCE);
+                float baseFactor = (float) Math.max(0.05, 1.0 - (resistance * 0.05));
+                float difficultyMul = difficulty.getId() * 0.5f;
+                float finalAmount = baseFactor * difficultyMul;
+                nihilityLevel.modifyAmount(player, finalAmount);
+            }
+        } else {
+            int decayTicks = (int) (ServerConfig.NIHILITY_DECAY_INTERVAL.get() * 20);
+            if (decayTicks > 0 && player.tickCount % decayTicks == 0 && amount > 0) {
+                int decayMultiplier = (difficulty == Difficulty.EASY) ? 2 : 1;
+                nihilityLevel.decrease(player, decayMultiplier);
+            }
+        }
+
+        if (isDamagingLevel(player, amount, max)) {
+            float ratio = amount / max;
+            boolean flag = ratio >= damagingLevel;
+
+            int segments = Math.min((int) ((ratio - damagingLevel) / 0.1F), 100);
+            float damage = (float) (1 + segments * ServerConfig.NIHILITY_DAMAGE_MULTIPLIER.get());
+
+            if (ratio >= 0.95f) {
+                onMaxAction(nihilityLevel, player, damage);
+            } else if (flag) player.hurt(DamageSourceRegistry.voidHarm(player.level()), damage);
+
+            boolean criticalFlag = amount > max * criticalLevel;
+            if (criticalFlag) {
+                if (Tmp.rnd.chance(0.05f)) {
+                    player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.WARDEN_HEARTBEAT, net.minecraft.sounds.SoundSource.PLAYERS,
+                            1.0f, 0.8f);
+                }
+
+                if (ServerConfig.CRITICAL_NIHILITY_BLINDNESS.get()) {
+                    if (!player.hasEffect(MobEffects.BLINDNESS)) {
+                        player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 120, 0));
+                    }
+                }
+            }
+        }
+    }
+
+    private static void onMaxAction(INihilityLevel nihilityLevel, ServerPlayer player, float damage){
+        switch(ServerConfig.MAX_NIHILITY_ACTION.get()) {
+            case DAMAGE -> player.hurt(DamageSourceRegistry.voidHarm(player.level()), damage);
+            case TELEPORT -> {
+                MinecraftServer server = player.getServer();
+                if(server != null){
+                    // PORT NOTE: Player.findRespawnPositionAndUseSpawnBlock(level, pos, angle, forced, alive) is private in 1.21;
+                    // ServerPlayer#findRespawnPositionAndUseSpawnBlock(keepInventory=true, DO_NOTHING) resolves the same
+                    // respawn-dimension bed/anchor position (without consuming an anchor charge) and falls back to the world spawn.
+                    net.minecraft.world.level.portal.DimensionTransition transition = player.findRespawnPositionAndUseSpawnBlock(true, net.minecraft.world.level.portal.DimensionTransition.DO_NOTHING);
+                    ServerLevel targetLevel = transition.newLevel();
+                    if(targetLevel != null){
+                        Vec3 target = transition.pos();
+                        player.teleportTo(targetLevel, target.x, target.y, target.z, player.getYRot(), player.getXRot());
+                        nihilityLevel.setAmount(0);
+                    }
+                }
+            }
+
+            default -> player.kill();
+        }
+    }
+
+    public static void clientTick(INihilityLevel nihilityLevel, Player player) {
+
+    }
+
+    private static boolean isDamagingLevel(Player player, float amountClient, float maxClient){
+        return player.tickCount % (amountClient < maxClient * criticalLevel ? 40 : 20) == 0;
+    }
+}

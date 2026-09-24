@@ -1,0 +1,112 @@
+{
+  "temperature": 0.4,
+  "downfall": 0.0,
+  "has_precipitation": false,
+  "effects": {
+    "sky_color": 1980488,
+    "fog_color": 2507703,
+    "water_color": 5718385,
+    "water_fog_color": 2561575,
+    "grass_color": 9466092,
+    "foliage_color": 8951007,
+    "mood_sound": {
+      "sound": "valoria:ambient.shade_forest.mood",
+      "tick_delay": 6700,
+      "block_search_extent": 8,
+      "offset": 4
+    },
+    "additions_sound": {
+      "sound": "valoria:ambient.shade_forest.additions",
+      "tick_chance": 0.0155
+    },
+    "music": {
+      "sound": "valoria:music.valoria.shaded_lands",
+      "min_delay": 12000,
+      "max_delay": 24000,
+      "replace_current_music": true
+    },
+    "particle": {
+      "options": {
+        "type": "minecraft:mycelium"
+      },
+      "probability": 0.001
+    }
+  },
+  "spawners": {
+    "ambient": [],
+    "axolotls": [],
+    "creature": [
+      {
+        "type": "valoria:scavenger",
+        "weight": 5,
+        "minCount": 1,
+        "maxCount": 2
+      }
+    ],
+    "misc": [],
+    "monster": [
+      {
+        "type": "valoria:corrupted_troll",
+        "weight": 25,
+        "minCount": 1,
+        "maxCount": 2
+      },
+      {
+        "type": "valoria:wicked_scorpion",
+        "weight": 1,
+        "minCount": 1,
+        "maxCount": 2
+      }
+    ],
+    "underground_water_creature": [],
+    "water_ambient": [],
+    "water_creature": []
+  },
+  "spawn_costs": {},
+  "carvers": {
+    "air": [
+      "minecraft:cave",
+      "minecraft:cave_extra_underground",
+      "minecraft:canyon"
+    ]
+  },
+  "features": [
+    [
+      "valoria:pyratite_blob",
+      "valoria:blackstone",
+      "valoria:deep_marble",
+      "valoria:disk_void_sand",
+      "valoria:void_taint_disk"
+    ],
+    [
+      "valoria:lake_lava_underground",
+      "valoria:lake_lava_surface"
+    ],
+    [
+      "valoria:shade_tree_root",
+      "valoria:rare_shade_tree",
+      "valoria:shade_fallen_tree",
+      "valoria:valoria_forest_rock",
+      "valoria:rare_dread_tree",
+      "valoria:rare_fancy_dread_tree"
+    ],
+    [
+      "valoria:cave_root",
+      "valoria:void_roots",
+      "valoria:soulflower",
+      "valoria:falseflower",
+      "valoria:falseflower_small",
+      "valoria:void_serpents",
+      "valoria:void_taint",
+      "valoria:abyssal_glowfern",
+      "valoria:violet_sprout",
+      "valoria:glow_violet_sprout",
+      "valoria:void_taint_lantern",
+      "valoria:tainted_roots"
+    ],
+    [
+      "valoria:spring_water",
+      "valoria:spring_lava"
+    ]
+  ]
+}

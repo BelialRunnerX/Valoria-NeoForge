@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "valoria:block/violet_sprout_plant"
+      },
+      {
+        "model": "valoria:block/violet_sprout_plant_red"
+      }
+    ]
+  }
+}

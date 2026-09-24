@@ -1,0 +1,22 @@
+{
+  "entries": [
+    "valoria:gems_bag_from_abandoned_mineshaft",
+    "valoria:miners_bag_from_abandoned_mineshaft",
+    "valoria:miners_bag_from_underwater_ruin_small",
+    "valoria:gems_bag_from_buried_treasure",
+    "valoria:gems_bag_from_shipwreck_supply",
+    "valoria:miners_bag_from_buried_treasure",
+    "valoria:gems_bag_from_shipwreck_treasure",
+    "valoria:miners_bag_from_underwater_ruin_big",
+    "valoria:candy_corn_from_mobs",
+    "valoria:bandage_from_mobs",
+    "valoria:pumpkin_contract_from_mobs",
+    "valoria:blaze_reap_from_ancient_city",
+    "valoria:candy_corn_from_mobs_effect",
+    "valoria:red_envelope_from_mobs_feb",
+    "valoria:red_envelope_from_mobs_jan",
+    "valoria:eye_necklace_from_ancient_city",
+    "valoria:sun_necklace_from_desert_pyramid"
+  ],
+  "replace": false
+}

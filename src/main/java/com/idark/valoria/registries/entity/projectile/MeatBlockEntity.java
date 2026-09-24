@@ -1,0 +1,175 @@
+package com.idark.valoria.registries.entity.projectile;
+
+import net.minecraft.core.registries.*;
+import com.idark.valoria.registries.*;
+import net.minecraft.core.particles.*;
+import net.minecraft.nbt.*;
+import net.minecraft.server.level.*;
+import net.minecraft.sounds.*;
+import net.minecraft.util.*;
+import net.minecraft.world.damagesource.*;
+import net.minecraft.world.effect.*;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.player.*;
+import net.minecraft.world.entity.projectile.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.enchantment.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.level.block.state.*;
+import net.minecraft.world.phys.*;
+import pro.komaru.tridot.common.registry.item.*;
+
+import javax.annotation.*;
+
+public class MeatBlockEntity extends AbstractArrow{
+    public boolean dealtDamage;
+    public ItemStack thrownStack = new ItemStack(BlockRegistry.meatBlock.get());
+    public float rotationVelocity = -8;
+    RandomSource rand = RandomSource.create();
+
+    public MeatBlockEntity(EntityType<? extends MeatBlockEntity> type, Level worldIn){
+        super(type, worldIn);
+    }
+
+    // PORT NOTE: AbstractArrow(type, owner, level) became (type, owner, level, pickupItemStack, firedFromWeapon) and
+    // getDefaultPickupItem() is abstract; the meat block stays the (never dropped) pickup item.
+    public MeatBlockEntity(Level worldIn, LivingEntity thrower, ItemStack thrownStackIn){
+        super(EntityTypeRegistry.MEAT.get(), thrower, worldIn, thrownStackIn.copy(), null);
+        this.thrownStack = thrownStackIn.copy();
+    }
+
+    @Override
+    protected ItemStack getDefaultPickupItem(){
+        return new ItemStack(BlockRegistry.meatBlock.get());
+    }
+
+    public void tick(){
+        if(this.inGroundTime > 4){
+            this.dealtDamage = true;
+        }
+
+        BlockState state = BlockRegistry.meatBlock.get().defaultBlockState();
+        for(int a = 0; a < 2; ++a){
+            this.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, state), this.getX() + Mth.nextFloat(rand, 0.0F, 0.2F), this.getY() + 0.7D, this.getZ() + Mth.nextFloat(rand, 0.0F, 0.2F), 0d, 0.02d, 0d);
+        }
+
+        if(isInWater()){
+            if(!this.level().isClientSide()){
+                this.removeAfterChangingDimensions();
+            }else{
+                this.level().playSound(this, this.getOnPos(), SoundsRegistry.DISAPPEAR.get(), SoundSource.AMBIENT, 0.4f, 1f);
+                for(int a = 0; a < 6; ++a){
+                    double d0 = rand.nextGaussian() * 0.02D;
+                    double d1 = rand.nextGaussian() * 0.02D;
+                    double d2 = rand.nextGaussian() * 0.02D;
+                    this.level().addParticle(ParticleTypes.POOF, xo, yo, zo, d0, d1, d2);
+                }
+            }
+        }
+
+        super.tick();
+    }
+
+    public void onHit(HitResult pResult){
+        if(pResult.getType() != HitResult.Type.ENTITY || !this.ownedBy(((EntityHitResult)pResult).getEntity())){
+            if(!this.level().isClientSide){
+                BlockState state = BlockRegistry.cattail.get().defaultBlockState();
+                for(int a = 0; a < 10; ++a){
+                    this.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, state), xo, yo + 4, zo, 0.2d, 0.04d, 0.2d);
+                }
+
+                this.level().playSound(this, this.getOnPos(), SoundEvents.FROGSPAWN_BREAK, SoundSource.AMBIENT, 0.4f, 1f);
+                this.removeAfterChangingDimensions();
+            }
+        }
+
+        super.onHit(pResult);
+    }
+
+    public ItemStack getPickupItem(){
+        return ItemStack.EMPTY;
+    }
+
+    @Nullable
+    public EntityHitResult findHitEntity(Vec3 startVec, Vec3 endVec){
+        return this.dealtDamage ? null : super.findHitEntity(startVec, endVec);
+    }
+
+    public void onHitEntity(EntityHitResult result) {
+        super.onHitEntity(result);
+        Entity entity = result.getEntity();
+        Entity shooter = this.getOwner();
+
+        if (shooter instanceof Player player) {
+            float totalDamage = (float)player.getAttributes().getValue(AttributeRegistry.PROJECTILE_DAMAGE);
+            DamageSource damagesource = new DamageSource(DamageSourceRegistry.bleeding(this.level()).typeHolder(), this, shooter);
+
+            if (entity instanceof LivingEntity livingentity) {
+                // PORT NOTE: EnchantmentHelper.getDamageBonus(stack, MobType) removed; see CombatCompat.
+                totalDamage += com.idark.valoria.util.CombatCompat.damageBonus(this.level(), this.thrownStack, livingentity, damagesource);
+            }
+
+            this.dealtDamage = true;
+
+            float healthBefore = 0.0F;
+            float absorptionBefore = 0.0F;
+            boolean isLiving = entity instanceof LivingEntity;
+
+            if (isLiving) {
+                LivingEntity target = (LivingEntity) entity;
+                healthBefore = target.getHealth();
+                absorptionBefore = target.getAbsorptionAmount();
+            }
+
+            if (entity.hurt(damagesource, totalDamage)) {
+                if (entity.getType() == EntityType.ENDERMAN) {
+                    return;
+                }
+
+                if (isLiving) {
+                    LivingEntity living = (LivingEntity) entity;
+
+                    float healthAfter = living.getHealth();
+                    float absorptionAfter = living.getAbsorptionAmount();
+                    float actualDamage = (healthBefore - healthAfter) + (absorptionBefore - absorptionAfter);
+
+                    if (actualDamage > 0.0F) {
+                        player.heal(actualDamage * 0.5F);
+                    }
+
+                    // PORT NOTE: doPostHurtEffects/doPostDamageEffects merged into the data-driven post-attack effects.
+                    if(this.level() instanceof ServerLevel serverLevel){
+                        EnchantmentHelper.doPostAttackEffectsWithItemSource(serverLevel, living, damagesource, this.thrownStack);
+                    }
+                    living.addEffect(new MobEffectInstance(EffectsRegistry.BLEEDING, 120, 1));
+                    this.doPostHurtEffects(living);
+                }
+            }
+        }
+    }
+
+    public SoundEvent getDefaultHitGroundSoundEvent(){
+        return SoundEvents.FROGSPAWN_BREAK;
+    }
+
+
+    public void readAdditionalSaveData(CompoundTag compound){
+        super.readAdditionalSaveData(compound);
+        if(compound.contains("thrown", 10)){
+            this.thrownStack = ItemStack.parseOptional(this.registryAccess(), compound.getCompound("thrown"));
+        }
+
+        this.dealtDamage = compound.getBoolean("DealtDamage");
+    }
+
+    public void addAdditionalSaveData(CompoundTag compound){
+        super.addAdditionalSaveData(compound);
+        compound.put("thrown", this.thrownStack.save(this.registryAccess()));
+    }
+
+    public void tickDespawn(){
+        if(this.pickup != Pickup.DISALLOWED){
+            super.tickDespawn();
+        }
+    }
+}

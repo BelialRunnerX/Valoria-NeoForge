@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "facing=east": [
+      {
+        "model": "valoria:block/valoria_portal_frame",
+        "y": 90
+      }
+    ],
+    "facing=north": [
+      {
+        "model": "valoria:block/valoria_portal_frame",
+        "y": 0
+      }
+    ],
+    "facing=south": [
+      {
+        "model": "valoria:block/valoria_portal_frame",
+        "y": 180
+      }
+    ],
+    "facing=west": [
+      {
+        "model": "valoria:block/valoria_portal_frame",
+        "y": -90
+      }
+    ]
+  }
+}

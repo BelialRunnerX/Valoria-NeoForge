@@ -1,0 +1,122 @@
+package com.idark.valoria.registries.item.types;
+
+import com.idark.valoria.*;
+import com.idark.valoria.core.config.*;
+import com.idark.valoria.registries.*;
+import com.idark.valoria.util.*;
+import net.minecraft.*;
+import net.minecraft.client.*;
+import net.minecraft.network.chat.*;
+import net.minecraft.sounds.*;
+import net.minecraft.stats.*;
+import net.minecraft.world.*;
+import net.minecraft.world.effect.*;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.*;
+import net.minecraft.world.entity.player.*;
+import net.minecraft.world.inventory.tooltip.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.*;
+import net.neoforged.neoforge.common.Tags.*;
+import org.joml.*;
+import pro.komaru.tridot.api.interfaces.*;
+import pro.komaru.tridot.client.gfx.*;
+import pro.komaru.tridot.client.gfx.particle.*;
+import pro.komaru.tridot.client.gfx.particle.data.*;
+import pro.komaru.tridot.common.registry.item.*;
+import pro.komaru.tridot.common.registry.item.components.*;
+import pro.komaru.tridot.util.*;
+import pro.komaru.tridot.util.struct.data.*;
+
+import java.lang.Math;
+import java.util.*;
+
+//TODO:
+// Fix the ability (Works weird on server)
+// Work on GFX side of the ability
+// Something like on-screen particles would be cool
+public class PhantomItem extends ValoriaSword implements RadiusItem, CooldownReductionItem, TooltipComponentItem{
+    public float pRadius = 3;
+
+    public PhantomItem(Tier tier, float attackDamageIn, float attackSpeedIn, Properties builderIn){
+        super(tier, attackDamageIn, attackSpeedIn, builderIn);
+    }
+
+    public InteractionResultHolder<ItemStack> use(Level worldIn, Player playerIn, InteractionHand handIn){
+        ItemStack itemstack = playerIn.getItemInHand(handIn);
+        if(!playerIn.isShiftKeyDown()){
+            playerIn.startUsingItem(handIn);
+            return InteractionResultHolder.consume(itemstack);
+        }
+
+        return InteractionResultHolder.pass(itemstack);
+    }
+
+    public int getUseDuration(ItemStack stack, LivingEntity entity){
+        return 72000;
+    }
+
+    public Seq<TooltipComponent> getTooltips(ItemStack pStack){
+        return Seq.with(
+        new SeparatorComponent(Component.translatable("tooltip.tridot.abilities")),
+        new AbilityComponent(Component.translatable("tooltip.valoria.phantom").withStyle(ChatFormatting.GRAY), Valoria.loc("textures/gui/tooltips/phantom.png")),
+        new TextComponent(Component.translatable("tooltip.valoria.rmb").withStyle(style -> style.withFont(Valoria.FONT)))
+        );
+    }
+
+    public void releaseUsing(ItemStack stack, Level level, LivingEntity entityLiving, int timeLeft){
+        Player player = (Player)entityLiving;
+        player.awardStat(Stats.ITEM_USED.get(this));
+        player.getCooldowns().addCooldown(this,  getCooldownReduction(650, stack));
+        float damage = (float)(player.getAttributeValue(Attributes.ATTACK_DAMAGE)) + CombatCompat.sweepingRatio(player);
+
+        Vector3d pos = new Vector3d(player.getX(), player.getY() + player.getEyeHeight(), player.getZ());
+        List<LivingEntity> hitEntities = new ArrayList<>();
+        ValoriaUtils.radiusHit(level, stack, player, null, hitEntities, pos, 0, player.getRotationVector().y, pRadius);
+        if(level.isClientSide()){
+            double radius = pRadius - 0.5f;
+            for(int a = 0; a < 20; a++){
+                double baseAngle = (a * Math.PI) * 0.925;
+
+                float angle = (float)(baseAngle + (a / 2 * Math.PI));
+                float y = (angle * 0.05f) - 0.5f;
+
+                double x = Math.cos(angle) * radius;
+                double z = Math.sin(angle) * radius;
+
+                ParticleBuilder.create(TridotParticles.WISP)
+                .setColorData(ColorParticleData.create(Pal.softBlue, Col.darkGray).build())
+                .setTransparencyData(GenericParticleData.create(0.125f, 0f).build())
+                .setScaleData(GenericParticleData.create(0.235f, 0.1f, 0).build())
+                .setLifetime(35)
+                .randomVelocity(0.015f)
+                .spawn(level, player.getX() + x, player.getY() + 1 + y, player.getZ() + z);
+            }
+
+            if(ClientConfig.RENDER_PHANTOM_ACTIVATION.get()){
+                Minecraft.getInstance().gameRenderer.displayItemActivation(ItemsRegistry.eternity.get().getDefaultInstance());
+            }
+        }
+
+        level.playSound(null, player.blockPosition(), SoundsRegistry.PHANTASM_ABILITY.get(), SoundSource.AMBIENT, 1.0F, 1.0F);
+        if(!player.isCreative()){
+            stack.hurtAndBreak(35, player, EquipmentSlot.MAINHAND);
+        }
+
+        int fireAspect = CombatCompat.fireAspect(player);
+        for(LivingEntity entityInRadius : hitEntities){
+            if(!player.canAttack(entityInRadius)) continue;
+            if((entityInRadius instanceof Player && ((Player)entityInRadius).isCreative()) || (entityInRadius instanceof BossEntity || entityInRadius.getType().is(EntityTypes.BOSSES))){
+                continue;
+            }
+
+            entityInRadius.hurt(level.damageSources().playerAttack(player), (damage + CombatCompat.damageBonus(player, stack, entityInRadius)) * 1.35f);
+            entityInRadius.addEffect(new MobEffectInstance(EffectsRegistry.STUN, 25));
+            entityInRadius.setDeltaMovement(0, 1, 0);
+            entityInRadius.hurtMarked = true;
+            if(fireAspect > 0){
+                entityInRadius.igniteForSeconds(fireAspect * 4);
+            }
+        }
+    }
+}

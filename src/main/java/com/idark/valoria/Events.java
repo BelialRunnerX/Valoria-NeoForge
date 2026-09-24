@@ -1,0 +1,658 @@
+package com.idark.valoria;
+
+import net.minecraft.core.registries.*;
+import com.google.common.collect.*;
+import com.idark.valoria.api.events.*;
+import com.idark.valoria.api.unlockable.*;
+import com.idark.valoria.client.ui.screen.book.codex.*;
+import com.idark.valoria.core.*;
+import com.idark.valoria.core.capability.*;
+import com.idark.valoria.core.config.*;
+import com.idark.valoria.core.interfaces.*;
+import com.idark.valoria.core.network.*;
+import com.idark.valoria.core.network.packets.*;
+import com.idark.valoria.core.network.packets.particle.*;
+import com.idark.valoria.registries.*;
+import com.idark.valoria.registries.AttributeReg.*;
+import com.idark.valoria.registries.effect.*;
+import com.idark.valoria.registries.entity.*;
+import com.idark.valoria.registries.item.armor.*;
+import com.idark.valoria.registries.item.armor.item.*;
+import com.idark.valoria.registries.item.recipe.*;
+import com.idark.valoria.registries.item.types.*;
+import com.idark.valoria.registries.item.types.elemental.*;
+import com.idark.valoria.registries.level.*;
+import com.idark.valoria.util.*;
+import net.minecraft.*;
+import net.minecraft.client.gui.screens.*;
+import net.minecraft.core.*;
+import net.minecraft.core.particles.*;
+import net.minecraft.nbt.*;
+import net.minecraft.network.chat.*;
+import net.minecraft.resources.*;
+import net.minecraft.server.*;
+import net.minecraft.server.level.*;
+import net.minecraft.sounds.*;
+import net.minecraft.tags.*;
+import net.minecraft.world.damagesource.*;
+import net.minecraft.world.effect.*;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.*;
+import net.minecraft.world.entity.monster.*;
+import net.minecraft.world.entity.player.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.level.storage.loot.*;
+import net.minecraft.world.phys.*;
+import net.neoforged.neoforge.common.*;
+import net.neoforged.neoforge.common.Tags.*;
+import net.neoforged.neoforge.event.*;
+import net.neoforged.neoforge.event.tick.*; // PORT NOTE: TickEvent.* -> event.tick.* in NeoForge 21
+import com.idark.valoria.registries.item.types.consumables.*;
+import net.minecraft.core.component.*;
+import net.neoforged.neoforge.event.entity.living.*;
+import net.neoforged.neoforge.event.entity.player.*;
+import net.neoforged.neoforge.event.level.*;
+import net.neoforged.bus.api.*;
+import net.neoforged.neoforge.common.util.*;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable;
+import net.neoforged.neoforge.registries.*;
+import pro.komaru.tridot.api.*;
+import pro.komaru.tridot.client.render.screenshake.*;
+import pro.komaru.tridot.common.registry.item.armor.*;
+import pro.komaru.tridot.util.*;
+import pro.komaru.tridot.util.comps.phys.*;
+import pro.komaru.tridot.util.math.*;
+
+import javax.annotation.*;
+import java.util.*;
+
+import static com.idark.valoria.util.ValoriaUtils.*;
+
+public class Events{
+    public ArcRandom arcRandom = Tmp.rnd;
+
+    @SubscribeEvent
+    public void onDatapackSync(OnDatapackSyncEvent event) {
+        MinecraftServer server = event.getPlayerList().getServer();
+        syncCrusherRecipes(server, event.getPlayer());
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            MinecraftServer server = player.getServer();
+            if (server != null) {
+                syncCrusherRecipes(server, player);
+            }
+        }
+    }
+
+    /**
+     * Syncs loot data to client, sends CrusherSyncPacket to all players when /reload command was executed
+     * @see OnDatapackSyncEvent#getPlayer()
+     */
+    public void syncCrusherRecipes(MinecraftServer server, @Nullable ServerPlayer targetPlayer) {
+        // PORT NOTE: recipes come wrapped in RecipeHolders (ids live on the holder) and loot tables are looked up by
+        // ResourceKey through the reloadable registries in 1.21.
+        RecipeManager recipeManager = server.getRecipeManager();
+        List<RecipeHolder<CrusherRecipe>> recipes = recipeManager.getAllRecipesFor(CrusherRecipe.Type.INSTANCE);
+        for (RecipeHolder<CrusherRecipe> holder : recipes) {
+            CrusherRecipe recipe = holder.value();
+            ResourceLocation lootTableId = recipe.getOutput();
+            LootTable lootTable = server.reloadableRegistries().getLootTable(ResourceKey.create(Registries.LOOT_TABLE, lootTableId));
+            List<ItemStack> possibleDrops = ValoriaUtils.getLootTableItems(lootTable);
+            CrusherSyncPacket packet = new CrusherSyncPacket(holder.id(), possibleDrops);
+            if (targetPlayer != null) {
+                PacketHandler.sendEntity(targetPlayer, packet);
+            } else {
+                PacketHandler.sendToAll(packet);
+            }
+        }
+    }
+
+    // PORT NOTE: onMissingMappings(MissingMappingsEvent) was removed: NeoForge 1.21 has no missing-mappings event. The
+    // old-id -> new-id table it applied is preserved in com.idark.valoria.core.LegacyIdRemap (see PORTING.md).
+
+    @SubscribeEvent
+    public void onReload(AddReloadListenerEvent event){
+        Valoria.LOGGER.info("Reloading Codex Chapters...");
+        CodexEntries.initChapters();
+    }
+
+    // PORT NOTE: registered explicitly through forgeBus.addListener(Events::onTooltip) in Valoria (client only), exactly as in
+    // 1.20.1. The @SubscribeEvent annotation it also carried was inert there (Forge skipped static methods on instance
+    // registration) but makes NeoForge refuse to boot, so only the annotation was dropped; behaviour is unchanged.
+    public static void onTooltip(ItemTooltipEvent event){
+        ItemStack stack = event.getItemStack();
+        List<Component> tooltip = event.getToolTip();
+        if(PoisonItem.isPoisoned(stack)){ // PORT NOTE: "poison_hits" NBT -> valoria:poison_hits component
+            int hits = PoisonItem.getPoisonHits(stack);
+            ImmutableList<MobEffectInstance> list = ImmutableList.of(new MobEffectInstance(MobEffects.POISON, 120, 0));
+            tooltip.add(Component.translatable("tooltip.valoria.poisoned", hits).withStyle(ChatFormatting.GRAY));
+            Utils.Items.effectTooltip(list, tooltip, 1, 1);
+        }
+
+        if(Unlockables.getUnlockableByItem(stack.getItem()).isPresent()){
+            if(Screen.hasControlDown()){
+                tooltip.add(Component.translatable("tooltip.valoria.open", Component.translatable("key.keyboard.left.control"), Component.translatable("key.mouse.right")).withStyle(ChatFormatting.GRAY));
+            }else{
+                tooltip.add(Component.translatable("tooltip.valoria.info", Component.translatable("key.keyboard.left.control")).withStyle(ChatFormatting.DARK_GRAY));
+            }
+        }
+
+        if(stack.getItem() instanceof TieredItem tiered){
+            if(tiered.getTier() == ItemTierRegistry.HALLOWEEN){
+                tooltip.add(1, Component.translatable("tooltip.valoria.soul_on_kill", 2).withStyle(ChatFormatting.AQUA).withStyle(style -> style.withFont(Valoria.FONT)));
+            }
+        }
+
+        if(ValoriaUtils.hasRot(stack)){ // PORT NOTE: "ValoriaRot" NBT -> valoria:rot component
+            int foodRot = ValoriaUtils.getRot(stack);
+            if(foodRot > 0){
+                String stageKey;
+                ChatFormatting color;
+
+                if(foodRot >= 60){
+                    stageKey = "tooltip.valoria.stage.rotting";
+                    color = ChatFormatting.RED;
+                }else if(foodRot >= 30){
+                    stageKey = "tooltip.valoria.stage.stale";
+                    color = ChatFormatting.YELLOW;
+                }else{
+                    stageKey = "tooltip.valoria.stage.fresh";
+                    color = ChatFormatting.GREEN;
+                }
+
+                var status = Component.translatable(stageKey).withStyle(color);
+                var line = Component.translatable("tooltip.valoria.rot_status", status, foodRot).withStyle(ChatFormatting.GRAY);
+                tooltip.add(1, line);
+            }
+        }
+    }
+
+    // PORT NOTE: TickEvent.PlayerTickEvent (END phase) -> PlayerTickEvent.Post; isEdible() -> FOOD component;
+    // "ValoriaRot"/"OriginalItem" NBT -> valoria:rot / valoria:original_item components.
+    @SubscribeEvent
+    public void playerTick(PlayerTickEvent.Post event){
+        Player player = event.getEntity();
+        if(ServerConfig.ENABLE_FOOD_ROT.get()){
+            if(player.level().dimension().equals(LevelGen.VALORIA_KEY)){
+                if(player.tickCount % (ServerConfig.FOOD_ROT_INTERVAL.get() * 20) == 0){
+                    Inventory inv = player.getInventory();
+                    for(int i = 0; i < inv.getContainerSize(); i++){
+                        ItemStack stack = inv.getItem(i);
+                        if(stack.has(DataComponents.FOOD) && stack.getUseAnimation() == UseAnim.EAT && !(stack.is(TagsRegistry.ROT_IMMUNE))){
+                            ValoriaUtils.addRot(1, 100, stack);
+                            int rot = ValoriaUtils.getRot(stack);
+                            if(rot == 100){
+                                convertToRot(player, stack, inv, i);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void convertToRot(Player player, ItemStack stack, Inventory inv, int i){
+        ItemStack rotStack = new ItemStack(ItemsRegistry.rot.get());
+        var key = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if(key == null) return;
+
+        RotItem.setOriginalItem(rotStack, key);
+        rotStack.setCount(stack.getCount());
+        inv.setItem(i, rotStack);
+        player.playSound(SoundEvents.FROGSPAWN_PLACE);
+    }
+
+    @SubscribeEvent
+    public void onAttackEntity(AttackEntityEvent event){
+        Player player = event.getEntity();
+        ItemStack stack = player.getMainHandItem();
+        if(player.hasEffect(EffectsRegistry.STUN)){ // PORT NOTE: Event#isCancelable() is gone; AttackEntityEvent is always cancellable
+            event.setCanceled(true);
+        }
+
+        if(PoisonItem.isPoisoned(stack)){
+            int hits = PoisonItem.getPoisonHits(stack);
+            if(hits > 0 && event.getTarget() instanceof LivingEntity target){
+                target.addEffect(new MobEffectInstance(MobEffects.POISON, 60, 0));
+                PoisonItem.setPoisonHits(stack, hits - 1); // removes the component at zero
+            }
+        }
+
+        for(ItemStack armorPiece : player.getArmorSlots()){
+            if(armorPiece.getItem() instanceof HitEffectArmorItem hitEffect){
+                if(!player.level().isClientSide){
+                    hitEffect.onAttack(event);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onFluid(BlockEvent.FluidPlaceBlockEvent e) {
+        // PORT NOTE: qualified because the Tags.* import brings NeoForge's Tags.Blocks into scope.
+        if(e.getNewState().is(net.minecraft.world.level.block.Blocks.STONE) || e.getNewState().is(net.minecraft.world.level.block.Blocks.COBBLESTONE)){
+            if(e.getLevel() instanceof ServerLevel level && level.dimension() == LevelGen.VALORIA_KEY){
+                e.setNewState(BlockRegistry.picrite.get().defaultBlockState());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void convertEvent(LivingConversionEvent.Pre ev){
+        if(ev.getEntity() instanceof Zombie zombie){
+            if(zombie.level().getBiome(zombie.blockPosition()).is(Biomes.IS_SWAMP)) {
+                zombie.convertTo(EntityTypeRegistry.SWAMP_WANDERER.get(), false);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onEntityInteract(PlayerInteractEvent.EntityInteract event){
+        if(event.getEntity().hasEffect(EffectsRegistry.STUN)){
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onLivingBlockDestroy(LivingDestroyBlockEvent event){
+        if(event.getEntity().hasEffect(EffectsRegistry.STUN)){
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerBlockDestroy(PlayerEvent.BreakSpeed event){
+        if(event.getEntity().hasEffect(EffectsRegistry.STUN)){
+            event.setNewSpeed(-1);
+        }
+    }
+
+    // PORT NOTE: EntityItemPickupEvent -> ItemEntityPickupEvent.Pre (deny via TriState instead of cancelling).
+    @SubscribeEvent
+    public void onItemPickup(ItemEntityPickupEvent.Pre event){
+        if(event.getPlayer().hasEffect(EffectsRegistry.STUN)){
+            event.setCanPickup(TriState.FALSE);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        Player player = event.getEntity();
+        if(ServerConfig.PATREON_REWARDS.get()){ // in case if server owners/admins don't really like it.
+            if(player instanceof ServerPlayer servPlr){
+                PatreonManager.rewardPlayer(servPlr);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onMobKilled(LivingDeathEvent event) {
+        if (event.getSource().getEntity() instanceof ServerPlayer player) {
+            LivingEntity victim = event.getEntity();
+            var curioStack = getEquippedCurio((item) -> item.getItem() instanceof CurioOnKillItem, player);
+            if(curioStack != null){
+                ((CurioOnKillItem)curioStack.getItem()).onKill(curioStack, player, victim);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onEffectApply(MobEffectEvent.Applicable event){
+        // PORT NOTE: MobEffectInstance#getEffect() is a Holder and Applicable has its own Result enum (DO_NOT_APPLY == DENY).
+        var entity = event.getEntity();
+        var effect = event.getEffectInstance();
+        if(effect.getEffect().value() instanceof AbstractImmunityEffect immunityEffect){
+            if(immunityEffect.effectRemoveReason(entity)){
+                event.setResult(Applicable.Result.DO_NOT_APPLY);
+            }
+        }
+
+        if(effect.is(MobEffects.POISON)){
+            if(isEquippedCurio(TagsRegistry.POISON_IMMUNE, entity)){
+                event.setResult(Applicable.Result.DO_NOT_APPLY);
+            }
+        }
+    }
+
+    /**
+     * PORT NOTE: LivingHurtEvent (pre-armour damage modification) and LivingAttackEvent (cancellation) both became
+     * LivingIncomingDamageEvent in NeoForge 21. The former attack handler runs at HIGH priority so its cancellations still
+     * happen before this modification pass, mirroring the old attack -> hurt order; cancelled events are not delivered here.
+     */
+    @SubscribeEvent
+    public void onLivingHurt(LivingIncomingDamageEvent event){
+        if(event.getSource().is(DamageTypeTags.BYPASSES_ARMOR)) return;
+        var source = event.getSource();
+        Entity attackerEntity = source.getEntity();
+        LivingEntity target = event.getEntity();
+        if (!(target instanceof ILivingEntityData data)) return;
+        if (source.getDirectEntity() instanceof Player player) {
+            if (target instanceof IEffectiveWeaponEntity eff) {
+                if(eff.getEffective() == null) {
+                    Valoria.LOGGER.debug("Effective weapon tag is null for {}", target);
+                    return;
+                }
+
+                if (player.getMainHandItem().is(eff.getEffective())) {
+                    float currentDamage = event.getAmount();
+                    float newDamage = currentDamage * eff.scaleFactor();
+                    event.setAmount(newDamage);
+                    data.valoria$setLastDamageWithSource(event.getSource(), event.getAmount());
+                }
+            }
+        }
+
+        if (!(attackerEntity instanceof LivingEntity attacker)) return;
+        float totalBonus = 0f;
+        if(!(attacker instanceof Player && target instanceof Player plr)){
+            for(ElementalType type : ElementalTypes.ELEMENTALS){
+                AttributeInstance attackAttr = attacker.getAttribute(type.damageAttr()); // PORT NOTE: getAttribute takes a Holder
+                AttributeInstance resistAttr = target.getAttribute(type.resistAttr());
+                if(attackAttr != null){
+                    totalBonus = applyAttackBonus(attackAttr, resistAttr, target, totalBonus);
+                }
+            }
+        }
+
+        if(target instanceof Player plr){
+            if(!event.getSource().is(DamageTypeTags.BYPASSES_ARMOR)){
+                float incomingDamage = event.getAmount();
+                if(target.hasEffect(EffectsRegistry.NIHILITY_PROTECTION)){
+                    int amplifier = target.getEffect(EffectsRegistry.NIHILITY_PROTECTION).getAmplifier() + 1;
+                    float protectionPercent = Math.min((amplifier + 1) * 0.10f, 0.90f);
+                    float totalMultiplier = Math.max(0.0f, 1.0f - protectionPercent);
+                    float reducedDamage = incomingDamage * totalMultiplier;
+
+                    castHurtEvent(event, reducedDamage, source, data);
+                    INihilityLevel.of(plr).ifPresent(nihilityLevel -> {
+                        if (!plr.getAbilities().instabuild && !plr.isSpectator()) {
+                            nihilityLevel.modifyAmount(plr, incomingDamage - reducedDamage * 1.5f);
+                        }
+                    });
+
+                    ScreenshakeHandler.add(new PositionedScreenshakeInstance(15, Pos3.init((float)plr.getX(), (float)plr.getY(), (float)plr.getZ()), 0, 5).intensity(0.45f).interp(Interp.fade));
+                    return;
+                }
+            }
+        }
+
+        castHurtEvent(event, event.getAmount() + totalBonus, source, data);
+    }
+
+    private void castHurtEvent(LivingIncomingDamageEvent event, float reducedDamage, DamageSource source, ILivingEntityData data){
+        event.setAmount(reducedDamage);
+        data.valoria$setLastDamageWithSource(event.getSource(), event.getAmount());
+
+        var curioStack = getEquippedCurio((item) -> item.getItem() instanceof CurioOnHurtItem, event.getEntity());
+        if(curioStack != null){
+            ((CurioOnHurtItem)curioStack.getItem()).onHurt(curioStack, event.getEntity(), source, reducedDamage);
+        }
+
+        Entity attackerEntity = event.getSource().getEntity();
+        if (attackerEntity instanceof LivingEntity attacker) {
+            var attackCurio = getEquippedCurio((item) -> item.getItem() instanceof CurioOnAttackItem, attacker);
+            if (attackCurio != null) {
+                ((CurioOnAttackItem) attackCurio.getItem()).onAttack(attackCurio, event.getEntity(), event.getSource(), event.getAmount());
+            }
+        }
+    }
+
+    private static float applyAttackBonus(AttributeInstance attackAttr, AttributeInstance resistAttr, LivingEntity target, float totalBonus){
+        float damage = (float)attackAttr.getValue();
+        float resistance = (float)(resistAttr != null ? resistAttr.getValue() : 0);
+
+        // PORT NOTE: AttributeInstance#getAttribute() is a Holder now; compare by registry key instead of identity.
+        boolean isNihility = attackAttr.getAttribute().is(AttributeReg.NIHILITY_DAMAGE.getKey());
+        boolean flag = !isNihility && target.getAttribute(AttributeReg.ELEMENTAL_RESISTANCE) != null;
+        resistance += (float)(flag ? target.getAttributeValue(AttributeReg.ELEMENTAL_RESISTANCE) : 0);
+        if(isNihility){
+            INihilityLevel.of(target).ifPresent(nihility -> nihility.modifyAmount(target, damage));
+        }
+
+        float multiplier = Math.max(1f - (resistance / 100f), 0f);
+        totalBonus += damage * multiplier;
+        return totalBonus;
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public void onLivingAttack(LivingIncomingDamageEvent event){ // PORT NOTE: LivingAttackEvent -> LivingIncomingDamageEvent (see onLivingHurt)
+        var pSource = event.getSource();
+        var entity = event.getEntity();
+        var level = entity.level();
+        if (pSource.getDirectEntity() instanceof Player player && level.isClientSide()) {
+            if (entity instanceof IEffectiveWeaponEntity eff){
+                if(player.getMainHandItem().is(eff.getEffective())){
+                    eff.spawnHitParticles(entity.level(), entity.blockPosition());
+                }
+            }
+        }
+
+        if(pSource.getEntity() instanceof LivingEntity attacker){
+            if (!(entity instanceof ILivingEntityData data)) return;
+            if(level instanceof ServerLevel s){
+                var pushDirection = new Vec3(entity.getX() + attacker.getX(), 0.0D, entity.getZ() + attacker.getX()).normalize();
+                if(attacker.getAttribute(AttributeReg.MISS_CHANCE) != null && Tmp.rnd.chance(attacker.getAttributeValue(AttributeReg.MISS_CHANCE) / 100)){
+                    level.playSound(null, attacker.blockPosition(), SoundsRegistry.MISS.get(), SoundSource.HOSTILE);
+                    s.sendParticles(ParticleTypes.SMOKE, attacker.getX(), attacker.getY(), attacker.getZ(), 16, 1, 1, 1, 0.025f);
+
+                    data.valoria$missTime(10);
+                    if(attacker instanceof Player player) player.displayClientMessage(Component.translatable("popup.valoria.miss"), true);
+                    event.setCanceled(true);
+                }
+
+                if(entity.getAttribute(AttributeReg.DODGE_CHANCE) != null && Tmp.rnd.chance(entity.getAttributeValue(AttributeReg.DODGE_CHANCE) / 100)){
+                    level.playSound(null, entity.blockPosition(), SoundsRegistry.DODGE.get(), SoundSource.HOSTILE);
+                    knockbackEntity(entity, pushDirection.reverse());
+                    s.sendParticles(ParticleTypes.ENCHANTED_HIT, entity.getX(), entity.getY(), entity.getZ(), 16, 1, 1, 1, 0.025f);
+
+                    data.valoria$dodgeTime(10);
+                    if(entity instanceof Player player) player.displayClientMessage(Component.translatable("popup.valoria.dodge"), true);
+                    event.setCanceled(true);
+                }
+            }
+        }
+
+        if(entity instanceof Player plr){
+            if(pSource.is(net.minecraft.world.damagesource.DamageTypes.EXPLOSION) || pSource.is(net.minecraft.world.damagesource.DamageTypes.PLAYER_EXPLOSION)){ // PORT NOTE: qualified, Tags.DamageTypes is also in scope
+                if(SuitArmorItem.hasCorrectArmorOn(ArmorRegistry.PYRATITE.material(), plr)) event.setCanceled(true);
+            }
+        }
+
+        if((pSource.is(net.minecraft.world.damagesource.DamageTypes.LAVA) || pSource.is(net.minecraft.world.damagesource.DamageTypes.IN_FIRE) || pSource.is(net.minecraft.world.damagesource.DamageTypes.ON_FIRE) || pSource.is(net.minecraft.world.damagesource.DamageTypes.HOT_FLOOR) || pSource.is(net.minecraft.world.damagesource.DamageTypes.UNATTRIBUTED_FIREBALL) || pSource.is(net.minecraft.world.damagesource.DamageTypes.FIREBALL))) {
+            if(isEquippedCurio(TagsRegistry.FIRE_IMMUNE, entity)) event.setCanceled(true);
+            if(entity instanceof Player player){
+                IMagmaLevel.of(player).ifPresent(magmaLevel -> {
+                    float max = magmaLevel.getMaxAmount(player);
+                    float amount = magmaLevel.getAmount();
+                    if(max <= 0 || amount <= 0) return;
+
+                    event.setCanceled(true);
+                });
+            }
+        }
+
+        if(pSource.getEntity() instanceof LivingEntity e){
+            if(e.hasEffect(EffectsRegistry.STUN)) event.setCanceled(true);
+        }
+
+        if(pSource.getDirectEntity() instanceof Player player){
+            float f2 = player.getAttackStrengthScale(0.5F);
+            boolean flag = f2 > 0.9F;
+            if(isEquippedCurio(TagsRegistry.INFLICTS_FIRE, player) && flag) {
+                entity.igniteForSeconds(15);
+            }
+        }
+    }
+
+    private static void knockbackEntity(LivingEntity entity, Vec3 pushDirection){
+        entity.hurtMarked = true;
+        entity.knockback(0.5f, pushDirection.x, pushDirection.z);
+    }
+
+    @SubscribeEvent
+    public void onLivingJump(LivingEvent.LivingJumpEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity.getEffect(EffectsRegistry.STUN) != null){
+            entity.setDeltaMovement(entity.getDeltaMovement().x(), 0.0D, entity.getDeltaMovement().z());
+        }
+    }
+
+    // PORT NOTE: Event#isCancelable() no longer exists. Events that are always cancellable in NeoForge call setCanceled
+    // directly; the ones that may or may not be (LivingEntityUseItemEvent subclasses, the *Empty click events, which were
+    // never cancellable in Forge either) keep the old "only if cancellable" semantics through the ICancellableEvent check.
+    // FillBucketEvent was removed from NeoForge; bucket use is already blocked by the RightClickItem/RightClickBlock handlers.
+    @SubscribeEvent
+    public void onPlayerLeftClick(PlayerInteractEvent.LeftClickBlock event) {
+        Player player = event.getEntity();
+        if (player.hasEffect(EffectsRegistry.STUN)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onUseItem(LivingEntityUseItemEvent event) {
+        LivingEntity living = event.getEntity();
+        if (event instanceof ICancellableEvent cancellable && living.hasEffect(EffectsRegistry.STUN)) {
+            cancellable.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
+        Entity entity = event.getEntity();
+        if (entity instanceof LivingEntity living) {
+            if (living.hasEffect(EffectsRegistry.STUN)) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onBreakBlock(BlockEvent.BreakEvent event) {
+        if (event.getPlayer().hasEffect(EffectsRegistry.STUN)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent.RightClickEmpty event) {
+        if (event instanceof ICancellableEvent cancellable && event.getEntity().hasEffect(EffectsRegistry.STUN)) {
+            cancellable.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent.LeftClickEmpty event){
+        if(event instanceof ICancellableEvent cancellable && event.getEntity().hasEffect(EffectsRegistry.STUN)){
+            cancellable.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onLivingHeal(LivingHealEvent event) {
+        float amount = event.getAmount();
+        if (event.getEntity().hasEffect(EffectsRegistry.EXHAUSTION)) {
+            int amplifier = event.getEntity().getEffect(EffectsRegistry.EXHAUSTION).getAmplifier();
+            float healMultiplier = 1.0f - 0.1f * (amplifier + 1);
+
+            healMultiplier = Math.max(0.5f, healMultiplier);
+            amount = amount * healMultiplier;
+        }
+
+        if (event.getEntity().hasEffect(EffectsRegistry.RENEWAL)) {
+            int amplifier = event.getEntity().getEffect(EffectsRegistry.RENEWAL).getAmplifier();
+            float healMultiplier = 1.0f + 0.1f * (amplifier + 1);
+
+            healMultiplier = Math.min(1.5f, healMultiplier);
+            amount = amount * healMultiplier;
+        }
+
+        event.setAmount(amount);
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent.EntityInteract event) {
+        if (event.getEntity().hasEffect(EffectsRegistry.STUN)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getEntity().hasEffect(EffectsRegistry.STUN)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent.LeftClickBlock event) {
+        if (event.getEntity().hasEffect(EffectsRegistry.STUN)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent.RightClickItem event) {
+        if (event.getEntity().hasEffect(EffectsRegistry.STUN)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerKill(LivingDeathEvent deathEvent){
+        Level level = deathEvent.getEntity().level();
+        if(level instanceof ServerLevel serverLevel){
+            Entity attacker = deathEvent.getSource().getEntity();
+            if(attacker instanceof Player plr){
+                for(ItemStack itemStack : plr.getHandSlots()){
+                    if(itemStack.getItem() instanceof SoulCollectorItem soul){
+                        Vec3 pos = deathEvent.getEntity().position().add(0, deathEvent.getEntity().getBbHeight() / 2f, 0);
+                        PacketHandler.sendToTracking(serverLevel, BlockPos.containing(pos), new SoulCollectParticlePacket(plr.getUUID(), pos.x(), pos.y(), pos.z()));
+
+                        var event = new SoulEvent.Added(plr.getMainHandItem(), 1);
+                        if(!NeoForge.EVENT_BUS.post(event).isCanceled()){ // PORT NOTE: post() returns the event in NeoForge
+                            soul.addCount(event.count, itemStack, plr);
+                        }
+                    }
+
+                    if(itemStack.getItem() instanceof EtherealSwordItem soul){
+                        Vec3 pos = deathEvent.getEntity().position().add(0, deathEvent.getEntity().getBbHeight() / 2f, 0);
+                        PacketHandler.sendToTracking(serverLevel, BlockPos.containing(pos), new SoulCollectParticlePacket(plr.getUUID(), pos.x(), pos.y(), pos.z()));
+
+                        var event = new SoulEvent.Added(plr.getMainHandItem(), 1);
+                        if(!NeoForge.EVENT_BUS.post(event).isCanceled()){
+                            soul.addCount(event.count, itemStack, plr);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onSoulCollect(SoulEvent.Added event) {
+        if(event.stack.getItem() instanceof TieredItem tiered) {
+            if(tiered.getTier() == ItemTierRegistry.HALLOWEEN) {
+                event.addCount(2);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void critDamage(CriticalHitEvent event){
+        Player plr = event.getEntity();
+        float f2 = plr.getAttackStrengthScale(0.5F);
+        boolean flag = f2 > 0.9F;
+        if(flag && plr.onGround()){
+            var curioStack = getEquippedCurio((item) -> item.getItem() instanceof CurioCritDamageItem, event.getEntity());
+            if(curioStack != null){
+                ((CurioCritDamageItem)curioStack.getItem()).critDamage(event);
+            }
+        }
+    }
+}

@@ -1,0 +1,113 @@
+package com.idark.valoria.core.network.packets.particle;
+
+import com.idark.valoria.Valoria;
+import net.minecraft.network.codec.*;
+import net.minecraft.network.protocol.common.custom.*;
+import net.neoforged.neoforge.network.handling.*;
+import com.idark.valoria.*;
+import net.minecraft.network.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.phys.*;
+import pro.komaru.tridot.client.gfx.*;
+import pro.komaru.tridot.client.gfx.particle.*;
+import pro.komaru.tridot.client.gfx.particle.data.*;
+import pro.komaru.tridot.util.*;
+
+import java.util.function.*;
+
+public class CubeShapedParticlePacket implements CustomPacketPayload{ // PORT NOTE: SimpleChannel message -> CustomPacketPayload
+    public static final CustomPacketPayload.Type<CubeShapedParticlePacket> TYPE = new CustomPacketPayload.Type<>(Valoria.loc("cube_shaped_particle_packet"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, CubeShapedParticlePacket> STREAM_CODEC = StreamCodec.of((buf, msg) -> msg.encode(buf), CubeShapedParticlePacket::decode);
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type(){
+        return TYPE;
+    }
+
+    private final double posX, posY, posZ;
+    private final int colorR, colorG, colorB;
+    private final float speedY, size;
+
+    public CubeShapedParticlePacket(double posX, double posY, double posZ, float size, float speedY, int colorR, int colorG, int colorB){
+        this.posX = posX;
+        this.posY = posY;
+        this.posZ = posZ;
+
+        this.speedY = speedY;
+        this.size = size;
+
+        this.colorR = colorR;
+        this.colorG = colorG;
+        this.colorB = colorB;
+    }
+
+    public static CubeShapedParticlePacket decode(FriendlyByteBuf buf){
+        return new CubeShapedParticlePacket(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readFloat(), buf.readFloat(), buf.readInt(), buf.readInt(), buf.readInt());
+    }
+
+    public static void handle(CubeShapedParticlePacket msg, IPayloadContext ctx){
+        if(ctx.flow().isClientbound()){
+            ctx.enqueueWork(() -> {
+                Level level = Valoria.proxy.getLevel();
+                Col color = new Col(msg.colorR, msg.colorG, msg.colorB);
+                float size = msg.size;
+
+                for(int i = 0; i < 25 * size; i++){
+                    double pOffset = Math.sin(i) * size;
+
+                    Vec3 pos0 = new Vec3(msg.posX + size, msg.posY, msg.posZ + pOffset);
+                    Vec3 pos1 = new Vec3(msg.posX - size, msg.posY, msg.posZ + pOffset);
+                    Vec3 pos2 = new Vec3(msg.posX + pOffset, msg.posY, msg.posZ - size);
+                    Vec3 pos3 = new Vec3(msg.posX - pOffset, msg.posY, msg.posZ + size);
+
+                    ParticleBuilder.create(TridotParticles.WISP)
+                            .setColorData(ColorParticleData.create(color, Col.black).build())
+                            .setTransparencyData(GenericParticleData.create(1.25f, 0f).build())
+                            .setScaleData(GenericParticleData.create(0.2f, 0.1f, 0).build())
+                            .setLifetime(6)
+                            .addVelocity(0, msg.speedY, 0)
+                            .spawn(level, pos0.x, pos0.y, pos0.z);
+
+                    ParticleBuilder.create(TridotParticles.WISP)
+                            .setColorData(ColorParticleData.create(color, Col.black).build())
+                            .setTransparencyData(GenericParticleData.create(1.25f, 0f).build())
+                            .setScaleData(GenericParticleData.create(0.2f, 0.1f, 0).build())
+                            .setLifetime(6)
+                            .addVelocity(0, msg.speedY, 0)
+                            .spawn(level, pos1.x, pos1.y, pos1.z);
+
+                    ParticleBuilder.create(TridotParticles.WISP)
+                            .setColorData(ColorParticleData.create(color, Col.black).build())
+                            .setTransparencyData(GenericParticleData.create(1.25f, 0f).build())
+                            .setScaleData(GenericParticleData.create(0.2f, 0.1f, 0).build())
+                            .setLifetime(6)
+                            .addVelocity(0, msg.speedY, 0)
+                            .spawn(level, pos2.x, pos2.y, pos2.z);
+
+                    ParticleBuilder.create(TridotParticles.WISP)
+                            .setColorData(ColorParticleData.create(color, Col.black).build())
+                            .setTransparencyData(GenericParticleData.create(1.25f, 0f).build())
+                            .setScaleData(GenericParticleData.create(0.2f, 0.1f, 0).build())
+                            .setLifetime(6)
+                            .addVelocity(0, msg.speedY, 0)
+                            .spawn(level, pos3.x, pos3.y, pos3.z);
+                }
+
+            });
+        }
+    }
+
+
+    public void encode(FriendlyByteBuf buf){
+        buf.writeDouble(posX);
+        buf.writeDouble(posY);
+        buf.writeDouble(posZ);
+
+        buf.writeFloat(size);
+        buf.writeFloat(speedY);
+
+        buf.writeInt(colorR);
+        buf.writeInt(colorG);
+        buf.writeInt(colorB);
+    }
+}

@@ -1,0 +1,182 @@
+package com.idark.valoria.registries;
+
+import com.idark.valoria.*;
+import com.idark.valoria.registries.item.types.*;
+import com.idark.valoria.registries.item.types.consumables.*;
+import com.idark.valoria.registries.item.types.curio.*;
+import net.minecraft.core.*;
+import net.minecraft.core.component.*;
+import net.minecraft.core.registries.*;
+import net.minecraft.nbt.*;
+import net.minecraft.network.chat.*;
+import net.minecraft.resources.*;
+import net.minecraft.tags.*;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.decoration.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.component.*;
+import net.neoforged.neoforge.common.*;
+import net.neoforged.neoforge.event.*;
+import net.neoforged.bus.api.*;
+import net.neoforged.fml.common.*;
+import net.neoforged.neoforge.registries.*;
+import pro.komaru.tridot.api.*;
+import pro.komaru.tridot.common.registry.entity.*;
+import pro.komaru.tridot.common.registry.item.types.*;
+import pro.komaru.tridot.util.*;
+import top.theillusivec4.curios.api.type.capability.*;
+
+import java.util.*;
+import java.util.function.*;
+
+// PORT NOTE: the @EventBusSubscriber(bus = MOD) annotation was removed - the class has no @SubscribeEvent methods
+// (addCreative is wired via eventBus.addListener in Valoria) and NeoForge's automatic subscriber throws on such classes.
+public abstract class ItemTabRegistry{
+    // PORT NOTE: PaintingVariant is a record (width()/height()) in 1.21.
+    private static final Comparator<Holder<PaintingVariant>> PAINTING_COMPARATOR = Comparator.comparing(Holder::value, Comparator.<PaintingVariant>comparingInt((p_270004_) -> p_270004_.height() * p_270004_.width()).thenComparing(PaintingVariant::width));
+    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Valoria.ID);
+
+    // PORT NOTE: backgroundSuffix/withBackgroundLocation merged into the vanilla backgroundTexture(ResourceLocation) in 1.20.5+.
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VALORIA_BLOCKS_TAB = CREATIVE_MODE_TABS.register("valoria_blocks",
+    () -> CreativeModeTab.builder().icon(() -> new ItemStack(BlockRegistry.jewelerTable.get()))
+    .hideTitle()
+    .title(Component.translatable("itemGroup.valoriaBlocksModTab"))
+    .withTabsImage(getTabsImage())
+    .backgroundTexture(getBackgroundImage()).build());
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VALORIA_TAB = CREATIVE_MODE_TABS.register("valoria_misc",
+    () -> CreativeModeTab.builder().icon(() -> new ItemStack(ItemsRegistry.pumpkinBomb.get()))
+    .hideTitle()
+    .title(Component.translatable("itemGroup.valoriaMiscModTab"))
+    .withTabsImage(getTabsImage())
+    .withTabsAfter(ItemTabRegistry.VALORIA_TOOLS.getKey())
+    .backgroundTexture(getBackgroundImage()).build());
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VALORIA_TOOLS = CREATIVE_MODE_TABS.register("valoria_tools",
+    () -> CreativeModeTab.builder().icon(() -> new ItemStack(ItemsRegistry.dreadAxe.get()))
+    .hideTitle()
+    .title(Component.translatable("itemGroup.valoriaToolsModTab"))
+    .withTabsImage(getTabsImage())
+    .withTabsAfter(ItemTabRegistry.VALORIA_CONSUMABLES.getKey())
+    .backgroundTexture(getBackgroundImage()).build());
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VALORIA_CONSUMABLES = CREATIVE_MODE_TABS.register("valoria_consumables",
+    () -> CreativeModeTab.builder().icon(() -> new ItemStack(ItemsRegistry.candyCorn.get()))
+    .hideTitle()
+    .title(Component.translatable("itemGroup.valoriaConsumablesModTab"))
+    .withTabsImage(getTabsImage())
+    .withTabsAfter(ItemTabRegistry.VALORIA_ARMOR_TAB.getKey())
+    .backgroundTexture(getBackgroundImage()).build());
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VALORIA_ARMOR_TAB = CREATIVE_MODE_TABS.register("valoria_armor",
+    () -> CreativeModeTab.builder().icon(() -> new ItemStack(ItemsRegistry.etherealHelmet.get()))
+    .hideTitle()
+    .title(Component.translatable("itemGroup.valoriaArmorModTab"))
+    .withTabsImage(getTabsImage())
+    .withTabsAfter(ItemTabRegistry.VALORIA_ACCESSORIES_TAB.getKey())
+    .backgroundTexture(getBackgroundImage()).build());
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VALORIA_ACCESSORIES_TAB = CREATIVE_MODE_TABS.register("valoria_accessories",
+    () -> CreativeModeTab.builder().icon(() -> new ItemStack(ItemsRegistry.goldenRingRuby.get()))
+    .hideTitle()
+    .title(Component.translatable("itemGroup.valoriaAccessoriesModTab"))
+    .withTabsImage(getTabsImage())
+    .withTabsAfter(ItemTabRegistry.VALORIA_BLOCKS_TAB.getKey())
+    .backgroundTexture(getBackgroundImage()).build());
+
+    public static ResourceLocation getBackgroundImage(){
+        return Valoria.loc("textures/gui/container/tab_valoria_item_legacy.png");
+    }
+
+    public static ResourceLocation getTabsImage(){
+        return Valoria.loc("textures/gui/container/tabs_valoria_legacy.png");
+    }
+
+    public static void register(IEventBus eventBus){
+        CREATIVE_MODE_TABS.register(eventBus);
+    }
+
+    public static void addCreative(BuildCreativeModeTabContentsEvent event){
+        var tabKey = event.getTabKey();
+        BiConsumer<Predicate<Item>, Boolean> addItems = (filter, fromBlocks) -> {
+            var entries = fromBlocks ? ItemsRegistry.BLOCK_ITEMS.getEntries() : ItemsRegistry.ITEMS.getEntries();
+            for (DeferredHolder<Item, ? extends Item> item : entries) {
+                Item i = item.get();
+                if (!new ItemStack(i).is(TagsRegistry.EXCLUDED_FROM_TAB) && filter.test(i)) {
+                    event.accept(i.getDefaultInstance());
+                }
+            }
+        };
+
+        if (tabKey == ItemTabRegistry.VALORIA_BLOCKS_TAB.getKey()) {
+            addItems.accept(i -> true, true);
+            event.getParameters().holders().lookup(Registries.PAINTING_VARIANT)
+            .ifPresent(paintings ->
+            generatePresetPaintings(event, event.getParameters().holders(), paintings,
+            holder -> holder.is(TagsRegistry.MODDED),
+            CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS)
+            );
+        } else if (tabKey == ItemTabRegistry.VALORIA_TAB.getKey()) {
+            addItems.accept(i -> !isAccessory(i) && !isArmor(i) && !(i instanceof SummonBook) && !isTool(i) && !isConsumable(i), false);
+        } else if(tabKey == ItemTabRegistry.VALORIA_CONSUMABLES.getKey()){
+            addItems.accept(ItemTabRegistry::isConsumable, false);
+        } else if(tabKey == ItemTabRegistry.VALORIA_TOOLS.getKey()) {
+            if (Utils.isDevelopment) event.accept(ItemsRegistry.debugItem.get());
+            addItems.accept(ItemTabRegistry::isTool, false);
+
+            event.getParameters().holders().lookup(Registries.ENTITY_TYPE).ifPresent(entities -> generateMinionItems(event, entities, holder -> holder.is(TagsRegistry.MINIONS), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS));
+        } else if (tabKey == ItemTabRegistry.VALORIA_ARMOR_TAB.getKey()) {
+            addItems.accept(ItemTabRegistry::isArmor, false);
+        } else if (tabKey == ItemTabRegistry.VALORIA_ACCESSORIES_TAB.getKey()) {
+            addItems.accept(ItemTabRegistry::isAccessory, false);
+        }
+    }
+
+    public static boolean isArmor(Item i) {
+        return i instanceof ArmorItem;
+    }
+
+    // PORT NOTE: NeoForge tag constants were singularised (TOOLS_SHIELD/TOOLS_BOW/TOOLS_CROSSBOW).
+    public static boolean isAccessory(Item i) {
+        return i instanceof ICurioItem || i instanceof AbstractTalismanItem || i.getDefaultInstance().is(Tags.Items.TOOLS_SHIELD);
+    }
+
+    public static boolean isTool(Item i) {
+        // PORT NOTE: vanilla ItemTags.TOOLS no longer exists in 1.21; the NeoForge c:tools tag covers it.
+        return i.getDefaultInstance().is(Tags.Items.TOOLS) || i.getDefaultInstance().is(Tags.Items.TOOLS_CROSSBOW) || i.getDefaultInstance().is(Tags.Items.TOOLS_BOW);
+    }
+
+    // PORT NOTE: Item.isEdible() became the FOOD data component.
+    public static boolean isConsumable(Item i) {
+        return i instanceof AbstractConsumableItem || i instanceof ValoriaFood || i instanceof PlaceableDrinkItem || i.components().has(DataComponents.FOOD);
+    }
+
+    // PORT NOTE: the "EntityTag" NBT moved into the ENTITY_DATA component; SummonBook keeps writing the same tag layout.
+    @SuppressWarnings("unchecked")
+    private static void generateMinionItems(CreativeModeTab.Output output, HolderLookup.RegistryLookup<EntityType<?>> entityLookup, Predicate<Holder<EntityType<?>>> predicate, CreativeModeTab.TabVisibility visibility){
+        output.accept(new ItemStack(ItemsRegistry.summonBook.get()));
+        entityLookup.listElements()
+                .filter(predicate)
+                .forEach(holder -> {
+                    ItemStack itemStack = new ItemStack(ItemsRegistry.summonBook.get());
+                    CustomData.update(DataComponents.ENTITY_DATA, itemStack, tag -> SummonBook.storeVariant(tag, holder));
+                    SummonBook.setColor(itemStack, Col.colorToDecimal(AbstractMinionEntity.getColor((EntityType<? extends AbstractMinionEntity>)holder.value())));
+                    output.accept(itemStack, visibility);
+                });
+    }
+
+    // PORT NOTE: painting items carry the variant inside the ENTITY_DATA component (Painting.VARIANT_MAP_CODEC), mirroring
+    // vanilla CreativeModeTabs#generatePresetPaintings in 1.21.1; the "EntityTag" NBT of 1.20.1 is gone.
+    private static void generatePresetPaintings(CreativeModeTab.Output pOutput, HolderLookup.Provider registries, HolderLookup.RegistryLookup<PaintingVariant> pPaintingVariants, Predicate<Holder<PaintingVariant>> pPredicate, CreativeModeTab.TabVisibility pTabVisibility){
+        RegistryOps<Tag> registryOps = registries.createSerializationContext(NbtOps.INSTANCE);
+        pPaintingVariants.listElements().filter(pPredicate).sorted(PAINTING_COMPARATOR).forEach((holder) -> {
+            CustomData customData = CustomData.EMPTY
+                .update(registryOps, Painting.VARIANT_MAP_CODEC, holder)
+                .getOrThrow()
+                .update(tag -> tag.putString("id", "minecraft:painting"));
+            ItemStack itemstack = new ItemStack(Items.PAINTING);
+            itemstack.set(DataComponents.ENTITY_DATA, customData);
+            pOutput.accept(itemstack, pTabVisibility);
+        });
+    }
+}

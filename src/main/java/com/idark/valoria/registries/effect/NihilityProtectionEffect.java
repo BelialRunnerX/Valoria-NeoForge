@@ -1,0 +1,16 @@
+package com.idark.valoria.registries.effect;
+
+import net.minecraft.world.effect.*;
+import pro.komaru.tridot.util.*;
+
+public class NihilityProtectionEffect extends MobEffect{
+    public NihilityProtectionEffect(){
+        super(MobEffectCategory.NEUTRAL, Col.hexToDecimal("733d9c"));
+    }
+
+    // PORT NOTE: isDurationEffectTick -> shouldApplyEffectTickThisTick.
+    @Override
+    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier){
+        return true;
+    }
+}

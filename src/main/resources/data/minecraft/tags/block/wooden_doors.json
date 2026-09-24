@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "valoria:shade_door",
+    "valoria:eldritch_door",
+    "valoria:dread_door"
+  ]
+}

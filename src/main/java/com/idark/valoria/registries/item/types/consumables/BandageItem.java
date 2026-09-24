@@ -1,0 +1,112 @@
+package com.idark.valoria.registries.item.types.consumables;
+
+import com.google.common.collect.*;
+import com.idark.valoria.client.particle.*;
+import com.idark.valoria.registries.*;
+import com.idark.valoria.util.*;
+import net.minecraft.*;
+import net.minecraft.advancements.*;
+import net.minecraft.network.chat.*;
+import net.minecraft.server.level.*;
+import net.minecraft.sounds.*;
+import net.minecraft.stats.*;
+import net.minecraft.world.effect.*;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.food.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.*;
+import net.neoforged.neoforge.common.*;
+import org.jetbrains.annotations.*;
+import pro.komaru.tridot.api.*;
+
+import java.util.*;
+
+/**
+ * PORT NOTE: FoodProperties.Builder#alwaysEat is {@code alwaysEdible} in 1.21 and the Forge "curative items" list on
+ * MobEffectInstance is gone; curing goes through NeoForge's {@link EffectCures} ({@code LivingEntity#removeEffectsCuredBy}).
+ * The bandage registers its own cure so only the curable (harmful, non-instant) effects it selected are removed.
+ */
+public class BandageItem extends Item{
+    public static final EffectCure BANDAGE_CURE = EffectCure.get("valoria_bandage");
+    public boolean removeAllEffects;
+    public ImmutableList<MobEffectInstance> effects;
+
+    public BandageItem(boolean pCure, MobEffectInstance... pEffects){
+        super(new Properties().food(new FoodProperties.Builder()
+                .alwaysEdible()
+                .nutrition(0)
+                .saturationModifier(0)
+                .build())
+        );
+
+        this.removeAllEffects = pCure;
+        this.effects = ImmutableList.copyOf(pEffects);
+    }
+
+    public BandageItem(boolean pCure, int time, int power){
+        super(new Properties().food(new FoodProperties.Builder()
+                .alwaysEdible()
+                .nutrition(0)
+                .saturationModifier(0)
+                .build())
+        );
+
+        this.removeAllEffects = pCure;
+        this.effects = ImmutableList.of(new MobEffectInstance(EffectsRegistry.ALOEREGEN, time, power));
+    }
+
+    public SoundEvent getDrinkingSound(){
+        return SoundEvents.BAMBOO_HIT;
+    }
+
+    public SoundEvent getEatingSound(){
+        return SoundEvents.BAMBOO_HIT;
+    }
+
+    @Override
+    public @NotNull ItemStack finishUsingItem(@NotNull ItemStack stack, Level level, @NotNull LivingEntity entity) {
+        if(entity instanceof ServerPlayer serverPlayer){
+            CriteriaTriggers.CONSUME_ITEM.trigger(serverPlayer, stack);
+            serverPlayer.awardStat(Stats.ITEM_USED.get(stack.getItem()));
+
+            cureEffects(stack, entity);
+            effects.forEach(eff -> serverPlayer.addEffect(new MobEffectInstance(eff)));
+            if(!serverPlayer.getAbilities().instabuild) stack.shrink(1);
+            if(level instanceof ServerLevel serverLevel) serverLevel.sendParticles(ParticleRegistry.HEAL.get(), entity.getX(), entity.getY() + 0.7D, entity.getZ(), 12, 0, 0, 0, 0.025f);
+        }
+
+        return stack;
+    }
+
+    private void cureEffects(ItemStack stack, LivingEntity entity) {
+        if (removeAllEffects) {
+            entity.getActiveEffects().stream()
+                    .filter(ValoriaUtils::isCurable)
+                    .forEach(e -> e.getCures().add(BANDAGE_CURE));
+
+            entity.removeEffectsCuredBy(BANDAGE_CURE);
+            return;
+        }
+
+        entity.removeEffect(EffectsRegistry.BLEEDING);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack pStack, Item.TooltipContext pLevel, List<Component> pTooltipComponents, TooltipFlag pIsAdvanced){
+        super.appendHoverText(pStack, pLevel, pTooltipComponents, pIsAdvanced);
+        Utils.Items.effectTooltip(effects, pTooltipComponents, 1, 1);
+        if (removeAllEffects) {
+            pTooltipComponents.add(Component.translatable("tooltip.valoria.effect_cure").withStyle(ChatFormatting.GRAY));
+        } else pTooltipComponents.add(Component.translatable("tooltip.valoria.bleeding_cure").withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    public int getUseDuration(ItemStack pStack, LivingEntity entity){
+        return 32;
+    }
+
+    @Override
+    public UseAnim getUseAnimation(ItemStack stack){
+        return UseAnim.BOW;
+    }
+}

@@ -1,0 +1,62 @@
+package com.idark.valoria.core.network.packets.particle;
+
+import com.idark.valoria.Valoria;
+import net.minecraft.network.codec.*;
+import net.minecraft.network.protocol.common.custom.*;
+import net.neoforged.neoforge.network.handling.*;
+import com.idark.valoria.*;
+import com.idark.valoria.util.*;
+import net.minecraft.core.*;
+import net.minecraft.network.*;
+import net.minecraft.world.level.*;
+import pro.komaru.tridot.client.gfx.*;
+import pro.komaru.tridot.client.gfx.particle.*;
+import pro.komaru.tridot.client.gfx.particle.data.*;
+import pro.komaru.tridot.client.render.*;
+import pro.komaru.tridot.util.*;
+import pro.komaru.tridot.util.math.*;
+
+import java.util.function.*;
+
+public class CystSummonParticlePacket implements CustomPacketPayload{ // PORT NOTE: SimpleChannel message -> CustomPacketPayload
+    public static final CustomPacketPayload.Type<CystSummonParticlePacket> TYPE = new CustomPacketPayload.Type<>(Valoria.loc("cyst_summon_particle_packet"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, CystSummonParticlePacket> STREAM_CODEC = StreamCodec.of((buf, msg) -> msg.encode(buf), CystSummonParticlePacket::decode);
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type(){
+        return TYPE;
+    }
+    private final int id;
+    private final BlockPos pos;
+
+    public CystSummonParticlePacket(int id, BlockPos pos){
+        this.id = id;
+        this.pos = pos;
+    }
+
+    public static CystSummonParticlePacket decode(FriendlyByteBuf buf){
+        return new CystSummonParticlePacket(buf.readInt(), buf.readBlockPos());
+    }
+
+    public static void handle(CystSummonParticlePacket msg, IPayloadContext ctx){
+        if(ctx.flow().isClientbound()){
+            ctx.enqueueWork(() -> {
+                Level pLevel = Valoria.proxy.getLevel();
+                ParticleBuilder.create(TridotParticles.WISP)
+                .setRenderType(TridotRenderTypes.TRANSLUCENT_PARTICLE)
+                .setColorData(ColorParticleData.create(Pal.kiwi.darker(), Pal.mindaro).build())
+                .setScaleData(GenericParticleData.create(0.045f, 0.075f, 0).setEasing(Interp.bounce).build())
+                .setLifetime(35)
+                .setGravity(0.0125f)
+                .flatRandomVelocity(0.025, Tmp.rnd.randomValueUpTo(0.055), 0.025)
+                .repeat(pLevel, msg.pos.getCenter().x, msg.pos.getCenter().y + 0.2, msg.pos.getCenter().z, 8);
+
+            });
+        }
+    }
+
+    public void encode(FriendlyByteBuf buf){
+        buf.writeInt(id);
+        buf.writeBlockPos(pos);
+    }
+}

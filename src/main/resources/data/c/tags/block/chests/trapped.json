@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "valoria:trapped_shade_chest",
+      "required": false
+    },
+    {
+      "id": "valoria:trapped_eldritch_chest",
+      "required": false
+    }
+  ]
+}

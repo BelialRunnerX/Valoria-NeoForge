@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.idark.valoria.core.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AttributeMixin",
+    "HalfTransparentBlockMixin",
+    "LivingEntityMixin",
+    "LootTableAccessor",
+    "MobAmbientSoundInvoker",
+    "RangedAttributeMixin"
+  ],
+  "client": [
+    "client.AbstractClientPlayerMixin",
+    "client.ClientLevelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

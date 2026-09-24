@@ -1,0 +1,76 @@
+package com.idark.valoria.registries.block.entity;
+
+import com.idark.valoria.registries.*;
+import com.idark.valoria.registries.item.recipe.*;
+import com.idark.valoria.util.*;
+import net.minecraft.core.*;
+import net.minecraft.nbt.*;
+import net.minecraft.network.*;
+import net.minecraft.network.protocol.game.*;
+import net.minecraft.server.level.*;
+import net.minecraft.sounds.*;
+import net.minecraft.world.*;
+import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.level.block.entity.*;
+import net.minecraft.world.level.block.state.*;
+import net.minecraft.world.phys.*;
+import org.jetbrains.annotations.*;
+import pro.komaru.tridot.api.*;
+
+import java.util.*;
+
+// PORT NOTE: recipe lookups go through ContainerRecipeInput and return RecipeHolders; NBT/sync methods carry a HolderLookup.Provider.
+public class CrusherBlockEntity extends BlockSimpleInventory{
+    public CrusherBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state){
+        super(type, pos, state);
+    }
+
+    public CrusherBlockEntity(BlockPos pos, BlockState state){
+        this(BlockEntitiesRegistry.CRUSHER_BLOCK_ENTITY.get(), pos, state);
+    }
+
+    @Override
+    protected SimpleContainer createItemHandler(){
+        return new SimpleContainer(64);
+    }
+
+    public void craftItem(ServerPlayer plr){
+        Optional<CrusherRecipe> recipe = getCurrentRecipe();
+        this.getItemHandler().removeItem(0, 1);
+        this.getItemHandler().setChanged();
+        Vec3 block = new Vec3(this.getBlockPos().getX() + 0.5f, this.getBlockPos().getY() + 1.5f, this.getBlockPos().getZ() + 0.5f);
+        Utils.Items.spawnLoot(this.level, this.getBlockPos().above(), Utils.Items.createLoot(recipe.get().getOutput(), Utils.Items.getGiftParameters((ServerLevel)this.level, block, plr)));
+        this.level.playSound(null, this.getBlockPos(), SoundEvents.CALCITE_BREAK, SoundSource.BLOCKS, 1.0f, 1.0f);
+    }
+
+    public Optional<CrusherRecipe> getCurrentRecipe(){
+        return this.level.getRecipeManager().getRecipeFor(CrusherRecipe.Type.INSTANCE, ContainerRecipeInput.of(this.getItemHandler()), level).map(RecipeHolder::value);
+    }
+
+    @Override
+    public ClientboundBlockEntityDataPacket getUpdatePacket(){
+        return ClientboundBlockEntityDataPacket.create(this, BlockEntity::getUpdateTag);
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries){
+        super.onDataPacket(net, pkt, registries);
+        handleUpdateTag(pkt.getTag(), registries);
+    }
+
+    @NotNull
+    @Override
+    public final CompoundTag getUpdateTag(HolderLookup.Provider registries){
+        var tag = new CompoundTag();
+        saveAdditional(tag, registries);
+        return tag;
+    }
+
+    @Override
+    public void setChanged(){
+        super.setChanged();
+        if(level != null && !level.isClientSide){
+            ValoriaUtils.SUpdateTileEntityPacket(this);
+        }
+    }
+}

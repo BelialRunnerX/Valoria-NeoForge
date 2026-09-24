@@ -1,0 +1,108 @@
+package com.idark.valoria.registries.block.types.altars;
+
+import net.minecraft.core.registries.*;
+import com.idark.valoria.registries.block.entity.*;
+import com.idark.valoria.util.*;
+import net.minecraft.core.*;
+import net.minecraft.server.level.*;
+import net.minecraft.sounds.*;
+import net.minecraft.world.*;
+import net.minecraft.world.entity.player.*;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.entity.*;
+import net.minecraft.world.level.block.state.*;
+import net.minecraft.world.level.block.state.properties.*;
+import net.minecraft.world.level.material.*;
+import net.minecraft.world.phys.*;
+import org.jetbrains.annotations.*;
+import pro.komaru.tridot.client.cinema.*;
+import pro.komaru.tridot.common.registry.block.entity.*;
+
+public abstract class AbstractBossAltar extends Block implements EntityBlock, SimpleWaterloggedBlock{
+
+    public AbstractBossAltar(Properties pProperties){
+        super(pProperties);
+    }
+
+    public abstract BlockEntity newBlockEntity(BlockPos pPos, BlockState pState);
+
+    public abstract Item getSummonItem();
+
+    @javax.annotation.Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(@NotNull Level level, @NotNull BlockState state, @NotNull BlockEntityType<T> type){
+        return TickableBlockEntity.getTickerHelper();
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder){
+        builder.add(BlockStateProperties.WATERLOGGED);
+    }
+
+    @Override
+    public FluidState getFluidState(BlockState state){
+        return state.getValue(BlockStateProperties.WATERLOGGED) ? Fluids.WATER.getSource(false) : Fluids.EMPTY.defaultFluidState();
+    }
+
+    @Override
+    public BlockState updateShape(BlockState pState, Direction pDirection, BlockState pNeighborState, LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos){
+        if(pState.getValue(BlockStateProperties.WATERLOGGED)){
+            pLevel.scheduleTick(pCurrentPos, Fluids.WATER, Fluids.WATER.getTickDelay(pLevel));
+        }
+
+        return super.updateShape(pState, pDirection, pNeighborState, pLevel, pCurrentPos, pNeighborPos);
+    }
+
+    public abstract SoundEvent getSummonSound();
+
+    @Override
+    public boolean triggerEvent(BlockState state, Level world, BlockPos pos, int id, int param){
+        super.triggerEvent(state, world, pos, id, param);
+        BlockEntity tile = world.getBlockEntity(pos);
+        return tile != null && tile.triggerEvent(id, param);
+    }
+
+    /**
+     * @return Returns the duration of cutscene
+     * @see AbstractAltarBlockEntity
+     */
+    public int cutsceneTicks() {
+        return 75;
+    }
+    // PORT NOTE: Block#use was split into useWithoutItem/useItemOn in 1.21; both route through the original logic (now interact).
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit){
+        return interact(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit){
+        return com.idark.valoria.util.BlockInteraction.toItemResult(interact(state, level, pos, player, hand, hit));
+    }
+
+    public InteractionResult interact(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit){
+        AbstractAltarBlockEntity tile = (AbstractAltarBlockEntity) world.getBlockEntity(pos);
+        ItemStack stack = player.getItemInHand(hand).copy();
+        if(!tile.canSummon(world)) return InteractionResult.PASS;
+        if(!stack.isEmpty() && tile.getItemHandler().getItem(0).isEmpty() && stack.is(this.getSummonItem())){
+            tile.getItemHandler().setItem(0, stack);
+            tile.startSummoning();
+            world.playSound(null, pos, getSummonSound(), SoundSource.PLAYERS, 10, 1);
+            if(!player.isCreative()){
+                player.getItemInHand(hand).shrink(1);
+            }
+
+            if (!world.isClientSide && player instanceof ServerPlayer sPlayer) {
+                CutsceneHelper.init(sPlayer, cutsceneTicks());
+            }
+
+            ValoriaUtils.SUpdateTileEntityPacket(tile);
+            return InteractionResult.SUCCESS;
+        }
+
+        return InteractionResult.PASS;
+    }
+
+}

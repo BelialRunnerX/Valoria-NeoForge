@@ -1,0 +1,48 @@
+{
+  "type": "minecraft:nether_forest_vegetation",
+  "config": {
+    "state_provider": {
+      "type": "minecraft:weighted_state_provider",
+      "entries": [
+        {
+          "weight": 1,
+          "data": {
+            "Name": "valoria:double_crimson_soulroot",
+            "Properties": {
+              "half": "lower"
+            }
+          }
+        },
+        {
+          "weight": 1,
+          "data": {
+            "Name": "valoria:double_crimson_goldy",
+            "Properties": {
+              "half": "lower"
+            }
+          }
+        },
+        {
+          "weight": 1,
+          "data": {
+            "Name": "valoria:double_crimson_magmaroot",
+            "Properties": {
+              "half": "lower"
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "type": "minecraft:block_predicate_filter",
+          "predicate": {
+            "type": "minecraft:matching_blocks",
+            "blocks": "minecraft:air"
+          }
+        }
+      ]
+    },
+    "spread_width": 8,
+    "spread_height": 4
+  }
+}

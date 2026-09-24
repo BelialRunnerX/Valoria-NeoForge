@@ -1,0 +1,48 @@
+{
+  "homepage": "https://github.com/BelialRunnerX/Valoria-NeoForge/",
+  "promos": {
+    "1.21.1-latest": "1.21.1-1.0.4.2",
+    "1.21.1-recommended": "1.21.1-1.0.4.2",
+    "1.20.1-latest": "1.20.1-1.0.4.1",
+    "1.20.1-recommended": "1.20.1-1.0.4.1"
+  },
+  "1.21.1": {
+    "1.21.1-1.0.4.2": "NeoForge 1.21.1 port of Valoria 1.0.4.2"
+  },
+  "1.20.1": {
+    "1.20.1-1.0.4.1": "Stability improvements",
+    "1.20.1-1.0.4": "Stability improvements and a lot of optimization",
+    "1.20.1-1.0.3.2": "Minor fixes",
+    "1.20.1-1.0.3.1": "Server Hotfix",
+    "1.20.1-1.0.3": "Global update, a lot of polish",
+    "1.20.1-1.0.2.9": "Server Hotfix",
+    "1.20.1-1.0.2.8": "Hotfix",
+    "1.20.1-1.0.2.7": "Minor Fixes",
+    "1.20.1-1.0.2.6": "Fixes",
+    "1.20.1-1.0.2.5": "Chinese new year event, config improvements, balance changes",
+    "1.20.1-1.0.2.4": "Bug fixes",
+    "1.20.1-1.0.2.3": "Performance update, QoL's",
+    "1.20.1-1.0.1": "Fixes, balance changes, new command, config changes",
+    "1.20.1-1.0": "Playable Release",
+    "1.20.1-0.9.9.1": "Hotfix",
+    "1.20.1-0.9.9": "Various Qol changes",
+    "1.20.1-0.9.8": "Server crashing fix",
+    "1.20.1-0.9.7": "Major Qol update",
+    "1.20.1-0.9.6": "Hotfix",
+    "1.20.1-0.9.5": "Improvements",
+    "1.20.1-0.9.2": "Improvements",
+    "1.20.1-0.9.1": "Major update",
+    "1.20.1-0.9": "Hotfix",
+    "1.20.1-0.8": "Improvements",
+    "1.20.1-0.7.1": "Hotfix",
+    "1.20.1-0.7": "Release, a LARGE update",
+    "1.20.1-0.6.35": "Lots of fixes, Lot of new Content, improvements",
+    "1.20.1-0.6.24": "Lots of fixes, Bunch of new Content",
+    "1.20.1-0.6.17": "Lots of fixes, Bunch of new Content, improvements",
+    "1.20.1-0.6.4": "Misc update, improvements, fixes",
+    "1.20.1-0.6.3": "Crypt improvements, fixes",
+    "1.20.1-0.6.2": "Technical changes, fixes",
+    "1.20.1-0.6.1": "Technical changes, reworks and fixes",
+    "1.20.1-0.6": "Tons of new content, fixes"
+  }
+}

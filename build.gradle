@@ -1,0 +1,371 @@
+// PORT NOTE: Rewritten from ForgeGradle 6 + MixinGradle + Librarian to ModDevGradle 2 for NeoForge 1.21.1.
+// Mixins on NeoForge need no refmap (runtime uses official mappings), so MixinGradle and the mixin
+// annotation processor are gone, and `reobfJar` no longer exists: the plain `jar` is the distributable.
+// The separate `client` source set was declared but never had sources (src/client does not exist), so it was dropped.
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
+import java.nio.charset.StandardCharsets
+
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.147'
+    id "com.modrinth.minotaur" version "2.+"
+    id 'net.darkhax.curseforgegradle' version '1.1.26'
+}
+
+version = "${version}"
+group = 'com.github.IriDark'
+base {
+    archivesName = project.name
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
+sourceSets {
+    main {
+        resources { srcDir 'src/generated/resources' }
+    }
+}
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        minecraftVersion = project.parchment_minecraft_version
+        mappingsVersion = project.parchment_mappings_version
+    }
+
+    // src/main/resources/META-INF/accesstransformer.cfg is picked up automatically.
+    runs {
+        configureEach {
+            gameDirectory = project.file('run')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'valoria'
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+
+        client {
+            client()
+        }
+
+        client1 {
+            client()
+            programArguments.addAll '--username', 'IriDark_'
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+        }
+
+        gameTestServer {
+            type = 'gameTestServer'
+        }
+
+        data {
+            data()
+            gameDirectory = project.file('run-data')
+            programArguments.addAll '--mod', 'valoria', '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
+
+    mods {
+        "valoria" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+        name = 'GeckoLib'
+        url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        content {
+            includeGroupByRegex("software\\.bernie.*")
+            includeGroup("com.eliotlash.mclib")
+        }
+    }
+
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+    maven { url = "https://repo.komaru.studio/releases" }
+    maven { url "https://maven.theillusivec4.top/" }
+    maven { url "https://cursemaven.com" }
+    maven { url "https://maven.blamejared.com" }
+    maven {
+        url = "https://maven.architectury.dev"
+        content {
+            includeGroup "dev.architectury"
+        }
+    }
+
+    maven {
+        url "https://maven.latvian.dev/releases"
+        content {
+            includeGroup "dev.latvian.mods"
+            includeGroup "dev.latvian.apps"
+        }
+    }
+    // PORT NOTE: KubeJS 2101 depends on com.github.rtyley:animated-gif-lib-for-java, which is only published on JitPack;
+    // without it the runtime classpath (runClient/runData) cannot be resolved even though compilation succeeds.
+    maven {
+        url "https://jitpack.io"
+        content {
+            includeGroup "com.github.rtyley"
+        }
+    }
+}
+
+dependencies {
+    // API's
+    // PORT NOTE: `fg.deobf` is gone (ModDevGradle consumes plain NeoForge jars). Tridot comes from mavenLocal
+    // (the 1.21.1 port published as pro.komaru:Tridot:1.21.1-1.0.169); Curios 5 -> 9; GeckoLib 4.8 (Forge) -> 4.9 (NeoForge).
+    runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
+    implementation "pro.komaru:Tridot:${minecraft_version}-${tridot_version}"
+    implementation "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
+
+    // COMPAT — every integration below has a NeoForge 1.21.1 build (see PORTING.md for versions).
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    implementation "maven.modrinth:jade:${jade_version}"
+    implementation "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    implementation "dev.latvian.mods:rhino:${rhino_version}"
+    implementation "dev.architectury:architectury-neoforge:${architectury_version}"
+    implementation "maven.modrinth:mmmmmmmmmmmm:${dummmmmmy_version}"
+    runtimeOnly "maven.modrinth:moonlight:${moonlight_version}"
+    implementation "maven.modrinth:just-enough-resources-jer:${jer_version}"
+}
+
+jar {
+    manifest {
+        attributes(["Specification-Title"     : project.name,
+                    "Specification-Vendor"    : "IriDark",
+                    "Specification-Version"   : 1,
+                    "Implementation-Title"    : project.name,
+                    "Implementation-Version"  : project.version,
+                    "Implementation-Vendor"   : "IriDark",
+                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")],)
+    }
+}
+
+static InputStreamReader createInput(File f) throws FileNotFoundException {
+    return new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)
+}
+
+static OutputStreamWriter createOutput(File f) throws FileNotFoundException {
+    return new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)
+}
+
+// Thanks to Skoow for helping with this
+task updateResources {
+    doLast {
+        File resourcesFolder = new File("src/main/resources"); resourcesFolder.mkdir()
+        File langFolder = new File(resourcesFolder, "assets/valoria/lang"); langFolder.mkdir()
+        File mainLangJson = new File(langFolder, "en_us.json"); mainLangJson.createNewFile()
+        Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+
+        LinkedHashMap<String,String> EN_US
+        try {
+            EN_US = gson.fromJson(createInput(mainLangJson), LinkedHashMap.class)
+        } catch (Exception e) {
+            throw new GradleException("Error parsing MAIN file: " + mainLangJson.getName(), e)
+        }
+
+        if(EN_US == null) {
+            println "Skipping langFile because of incorrect structure " + mainLangJson.getName()
+            return
+        }
+
+        File[] otherLangs = langFolder.listFiles( (FileFilter) (f) -> {return f != mainLangJson && f.isFile() && f.getName().endsWith(".json")})
+        println "[32m- Comparing langs with:[0m " + mainLangJson.getName()
+        for (final File otherLang in otherLangs) {
+            println "Processing file: " + otherLang.getName()
+            try{
+                InputStreamReader reader = createInput(otherLang)
+                LinkedHashMap<String,String> LANG
+                try {
+                    LANG = gson.fromJson(reader, LinkedHashMap.class)
+                } catch (Exception e) {
+                    throw new GradleException("Error parsing LANG file: " + otherLang.getName(), e)
+                }
+
+                reader.close();
+                if(LANG == null){
+                    println "Skipping langFile because of incorrect structure " + otherLang.getName()
+                    continue
+                }
+
+                EN_US.forEach(LANG::putIfAbsent)
+                OutputStreamWriter writer = createOutput(otherLang)
+                gson.toJson(LANG, LinkedHashMap.class, writer)
+                writer.close()
+                println "[32m- Compared lang file[0m " + "[36m" + otherLang.getName() + "[0m"
+            } catch (Exception e) {
+                println "[31mError processing file: " + otherLang.getName() + "[0m"
+                throw e;
+            }
+        }
+    }
+}
+
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+//lightweight version
+task apiJar(type: Jar) {
+    archiveClassifier.set('api')
+    from sourceSets.main.output
+    exclude("assets/valoria/sounds/**")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task noMusicJar(type: Jar) {
+    archiveClassifier.set('nomusic')
+    from sourceSets.main.output
+    exclude("assets/valoria/sounds/music/**")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+    exclude "assets/**"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task javadocJar(type: Jar) {
+    dependsOn javadoc
+    from javadoc.destinationDir
+    archiveClassifier.set('javadoc')
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            tridot_version_range   : tridot_version_range,
+            mod_version            : version
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact apiJar
+            artifact sourcesJar
+        }
+    }
+
+    repositories{
+        maven{
+            url "https://repo.komaru.studio/releases"
+            credentials{
+                username "admin"
+                password System.getenv("maventoken")
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+    options.compilerArgs.addAll(['-Xmaxerrs', '10000'])
+}
+
+def getChangelogText() {
+    def changelogFile = file('CHANGELOG.md')
+    if (!changelogFile.exists()) return ""
+
+    def lines = changelogFile.readLines()
+    def currentLog = new StringBuilder()
+    def reading = false
+    def cleanVersion = version.toString().replace("${minecraft_version}-", "")
+    for (line in lines) {
+        def trimmed = line.trim()
+        if (trimmed.startsWith("#") && !trimmed.contains("**")) {
+            if (trimmed.contains(cleanVersion)) {
+                reading = true
+                continue
+            }else if (reading) {
+                break
+            }
+        }
+
+        if (reading) {
+            currentLog.append(line).append('\n')
+        }
+    }
+
+    return currentLog.toString().trim()
+}
+
+task curseforge(type: TaskPublishCurseForge) {
+    apiToken = System.getenv("cursetoken")
+    def projectId = "698244"
+    def mainFile = upload(projectId, jar)
+    mainFile.displayName = "Valoria-${version}"
+    mainFile.releaseType = "release"
+    mainFile.gameVersions = ["Server", "Client"]
+    mainFile.changelog = getChangelogText()
+
+    // PORT NOTE: this build targets NeoForge 1.21.1 / Java 21 only.
+    mainFile.addGameVersion("${minecraft_version}")
+    mainFile.addModLoader("NeoForge")
+    mainFile.addJavaVersion("Java 21")
+
+    mainFile.addRequirement("tridot")
+    mainFile.addRequirement("geckolib")
+    mainFile.addRequirement("curios")
+
+    mainFile.withAdditionalFile(noMusicJar)
+}
+
+modrinth {
+    token = System.getenv("modrinthtoken")
+    projectId = "valoria"
+    versionNumber = version.toString().replace("${minecraft_version}-", "");
+    versionType = "release"
+    versionName = "Valoria-${version}"
+    changelog = getChangelogText()
+    uploadFile = tasks.jar
+    additionalFiles = [noMusicJar]
+    loaders = ["neoforge"]
+    gameVersions = ["${minecraft_version}"]
+    dependencies {
+        required.version "tridot", "${minecraft_version}-" + "${tridot_version}"
+        required.project "geckolib"
+        required.project "curios"
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

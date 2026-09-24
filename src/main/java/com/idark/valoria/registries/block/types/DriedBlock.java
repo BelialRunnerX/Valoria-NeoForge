@@ -1,0 +1,40 @@
+package com.idark.valoria.registries.block.types;
+
+import net.minecraft.core.registries.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
+public class DriedBlock extends BushBlock implements net.neoforged.neoforge.common.IShearable{ // PORT NOTE: IForgeShearable -> IShearable
+    public static final com.mojang.serialization.MapCodec<DriedBlock> CODEC = simpleCodec(DriedBlock::new); // PORT NOTE: BlockBehaviour#codec() is abstract in 1.21
+    @Override protected com.mojang.serialization.MapCodec<? extends DriedBlock> codec(){ return CODEC; }
+
+    protected static final VoxelShape SHAPE = Block.box(2.0D, 0.0D, 2.0D, 14.0D, 13.0D, 14.0D);
+
+    public DriedBlock(BlockBehaviour.Properties builder){
+        super(builder);
+    }
+
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context){
+        return SHAPE;
+    }
+
+    protected boolean mayPlaceOn(BlockState state, BlockGetter worldIn, BlockPos pos){
+        Block block = state.getBlock();
+        return block == Blocks.SAND || block == Blocks.RED_SAND || block == Blocks.TERRACOTTA || block == Blocks.WHITE_TERRACOTTA || block == Blocks.ORANGE_TERRACOTTA || block == Blocks.MAGENTA_TERRACOTTA || block == Blocks.LIGHT_BLUE_TERRACOTTA || block == Blocks.YELLOW_TERRACOTTA || block == Blocks.LIME_TERRACOTTA || block == Blocks.PINK_TERRACOTTA || block == Blocks.GRAY_TERRACOTTA || block == Blocks.LIGHT_GRAY_TERRACOTTA || block == Blocks.CYAN_TERRACOTTA || block == Blocks.PURPLE_TERRACOTTA || block == Blocks.BLUE_TERRACOTTA || block == Blocks.BROWN_TERRACOTTA || block == Blocks.GREEN_TERRACOTTA || block == Blocks.RED_TERRACOTTA || block == Blocks.BLACK_TERRACOTTA || block == Blocks.DIRT || block == Blocks.COARSE_DIRT || block == Blocks.PODZOL;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public long getSeed(BlockState state, BlockPos pos){
+        return Mth.getSeed(pos.getX(), pos.getY(), pos.getZ());
+    }
+}

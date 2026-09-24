@@ -1,0 +1,51 @@
+package com.idark.valoria.client.ui.screen.book;
+
+
+import com.google.common.collect.*;
+
+import java.util.*;
+
+public class Chapter{
+    public String titleKey;
+    public String unknownKey = "commands.valoria.page.unknown";
+    public List<Page> pages;
+
+    public Chapter(String titleKey, Page... pages){
+        this.titleKey = titleKey;
+        this.pages = Lists.newArrayList(pages);
+    }
+
+    public Page getPage(int i){
+        if(i >= size()) return null;
+        return pages.get(i);
+    }
+
+    public Chapter setUnknownKey(String key) {
+        this.unknownKey = key;
+        return this;
+    }
+
+    public int size(){
+        return pages.size();
+    }
+
+    public void setPage(int i, Page page){
+        pages.set(i, page);
+    }
+
+    public void addPage(int i, Page page){
+        pages.add(i, page);
+    }
+
+    public void addPage(Page page){
+        pages.add(page);
+    }
+
+    public void removePage(Page page){
+        pages.remove(page);
+    }
+
+    public void removePage(int i){
+        pages.remove(i);
+    }
+}

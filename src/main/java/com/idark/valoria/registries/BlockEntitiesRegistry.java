@@ -1,0 +1,32 @@
+package com.idark.valoria.registries;
+
+import net.minecraft.core.registries.*;
+import com.idark.valoria.*;
+import com.idark.valoria.registries.block.entity.*;
+import net.minecraft.world.level.block.entity.*;
+import net.minecraft.world.level.block.entity.BlockEntityType.*;
+import net.neoforged.bus.api.*;
+import net.neoforged.neoforge.registries.*;
+
+public class BlockEntitiesRegistry{
+    public static DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Valoria.ID);
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ModSignBlockEntity>> SIGN_BLOCK_ENTITIES = BLOCK_ENTITIES.register("sign", () -> Builder.of(ModSignBlockEntity::new, BlockRegistry.shadeSign.get(), BlockRegistry.shadeWallSign.get(), BlockRegistry.eldritchSign.get(), BlockRegistry.eldritchWallSign.get(), BlockRegistry.dreadwoodSign.get(), BlockRegistry.dreadwoodWallSign.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ModHangingSignBlockEntity>> HANGING_SIGN_BLOCK_ENTITIES = BLOCK_ENTITIES.register("hanging_sign", () -> Builder.of(ModHangingSignBlockEntity::new, BlockRegistry.shadeHangingSign.get(), BlockRegistry.shadeWallHangingSign.get(), BlockRegistry.eldritchHangingSign.get(), BlockRegistry.eldritchWallHangingSign.get(), BlockRegistry.dreadwoodHangingSign.get(), BlockRegistry.dreadwoodWallHangingSign.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<PedestalBlockEntity>> PEDESTAL_BLOCK_ENTITY = BLOCK_ENTITIES.register("pedestal_entity", () -> Builder.of(PedestalBlockEntity::new, BlockRegistry.elegantPedestal.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CrypticAltarBlockEntity>> CRYPTIC_ALTAR = BLOCK_ENTITIES.register("cryptic_altar", () -> Builder.of(CrypticAltarBlockEntity::new, BlockRegistry.crypticAltar.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WickedAltarBlockEntity>> WICKED_ALTAR = BLOCK_ENTITIES.register("wicked_altar", () -> Builder.of(WickedAltarBlockEntity::new, BlockRegistry.wickedAltar.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CrusherBlockEntity>> CRUSHER_BLOCK_ENTITY = BLOCK_ENTITIES.register("crusher_entity", () -> Builder.of(CrusherBlockEntity::new, BlockRegistry.stoneCrusher.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CrushableBlockEntity>> CRUSHABLE_BLOCK_ENTITY = BLOCK_ENTITIES.register("crushable_entity", () -> Builder.of(CrushableBlockEntity::new, BlockRegistry.suspiciousTombstone.get(), BlockRegistry.suspiciousIce.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<KegBlockEntity>> KEG_BLOCK_ENTITY = BLOCK_ENTITIES.register("keg_entity", () -> Builder.of(KegBlockEntity::new, BlockRegistry.keg.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<JewelryBlockEntity>> JEWELRY_BLOCK_ENTITY = BLOCK_ENTITIES.register("jewelry_entity", () -> Builder.of(JewelryBlockEntity::new, BlockRegistry.jewelerTable.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ManipulatorBlockEntity>> MANIPULATOR_BLOCK_ENTITY = BLOCK_ENTITIES.register("manipulator_entity", () -> Builder.of(ManipulatorBlockEntity::new, BlockRegistry.elementalManipulator.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ValoriaPortalBlockEntity>> VALORIA_PORTAL_BLOCK_ENTITY = BLOCK_ENTITIES.register("valoria_portal", () -> Builder.of(ValoriaPortalBlockEntity::new, BlockRegistry.valoriaPortal.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<FleshCystBlockEntity>> FLESH_CYST = BLOCK_ENTITIES.register("flesh_cyst", () -> Builder.of(FleshCystBlockEntity::new, BlockRegistry.fleshCyst.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<KilnBlockEntity>> KILN = BLOCK_ENTITIES.register("kiln", () -> Builder.of(KilnBlockEntity::new, BlockRegistry.kiln.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<BossTrophyBlockEntity>> BOSS_TROPHY_ENTITIES = BLOCK_ENTITIES.register("boss_trophy", () -> Builder.of(BossTrophyBlockEntity::new, BlockRegistry.bossTrophy.get(), BlockRegistry.necromancerTrophy.get(), BlockRegistry.dryadorTrophy.get(), BlockRegistry.firronTrophy.get(), BlockRegistry.wickedCrystalTrophy.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SoulInfuserBlockEntity>> SOUL_INFUSER_BLOCK_ENTITY = BLOCK_ENTITIES.register("soul_infuser", () -> Builder.of(SoulInfuserBlockEntity::new, BlockRegistry.soulInfuser.get()).build(null));
+
+    public static void register(IEventBus eventBus){
+        BLOCK_ENTITIES.register(eventBus);
+    }
+}

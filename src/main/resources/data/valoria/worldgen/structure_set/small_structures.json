@@ -1,0 +1,37 @@
+{
+  "structures": [
+    {
+      "structure": "valoria:tower",
+      "weight": 75
+    },
+    {
+      "structure": "valoria:taint_spike",
+      "weight": 75
+    },
+    {
+      "structure": "valoria:corrupted_well",
+      "weight": 50
+    },
+    {
+      "structure": "valoria:crystallized_deep_ruins",
+      "weight": 65
+    },
+    {
+      "structure": "valoria:sand_ruin",
+      "weight": 65
+    },
+    {
+      "structure": "valoria:small_ruin",
+      "weight": 125
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spread_type": "triangular",
+    "salt": 20083232,
+    "separation": 4,
+    "spacing": 12,
+    "frequency_reduction_method": "legacy_type_1",
+    "frequency": 0.5
+  }
+}
