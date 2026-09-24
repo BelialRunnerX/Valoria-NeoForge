@@ -2,6 +2,10 @@
 
 Newest first. The mod version stays `1.21.1-1.0.4.2` (upstream Valoria 1.0.4.2 code base as of the port); port builds are identified by date and commit. Every code change carries a `// PORT NOTE:` comment and is described in [PORTING.md](PORTING.md); open problems are tracked in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). The original Forge 1.20.1 changelog follows below the divider.
 
+## 2026-09-24 — automated in-game test harness
+
+- **Added** `tools/porttest/porttest.js` (KubeJS server script) and the `clientAuto` run configuration (`gradlew runClientAuto` quick-plays the `PortTest` world). The script drives 46 checks with commands and the game API and logs `[PORTTEST] PASS/FAIL` lines — no mouse or keyboard needed. Last run 42/46; the 4 failures were test artefacts, now informational. Details and gotchas in `tools/porttest/README.md`; the verified list moved into [KNOWN_ISSUES.md](KNOWN_ISSUES.md). No mod code changed in this entry.
+
 ## 2026-09-24 — fixes from the maintainer's own play test
 
 Tested by driving the dev client directly (creative world, `/give`/`/summon`/`/setblock`, screenshots, log review). Requires the Tridot port at `ded8025` or newer.

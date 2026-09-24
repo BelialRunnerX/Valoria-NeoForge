@@ -58,6 +58,14 @@ neoForge {
             programArguments.addAll '--username', 'IriDark_'
         }
 
+        // PORT NOTE (port metadata - dev tooling): headless-ish smoke test. Boots straight into the singleplayer world
+        // named by -PquickPlayWorld (default PortTest) so the KubeJS harness in tools/porttest can run without any
+        // mouse/keyboard input. Not used by the built jar.
+        clientAuto {
+            client()
+            programArguments.addAll '--quickPlaySingleplayer', (project.findProperty('quickPlayWorld') ?: 'PortTest')
+        }
+
         server {
             server()
             programArgument '--nogui'

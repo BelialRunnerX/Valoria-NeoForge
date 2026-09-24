@@ -46,14 +46,15 @@ Status legend: **Open** (needs a fix), **Upstream** (present in the original For
 
 ## Unverified in game
 
-- Portal travel Overworld ⇄ Valoria through an actual portal (new `Portal`/`DimensionTransition` path), portal re-use and spawn placement — only `/execute in` teleports were tested.
-- 1.20.1 structure NBT templates load through vanilla's data fixer; structures are located by `/locate`, but their interiors and loot have not been eyeballed yet.
-- Boss fights: spells, AI, loot and the music disc drop for Necromancer, Dryador, Firron, Wicked Crystal, King Crab; stat amplification per difficulty (summoning, boss bars and the Firron cutscene are verified).
-- Nihility damage scaling, max-nihility action and its teleport variant, magma charge HUD (the meter itself is verified).
-- Damage pipeline: nihility damage scaling and damage indicators now hook `LivingIncomingDamageEvent` (both the old attack and hurt handlers run at that point); numbers should be compared with 1.20.1.
-- Codex: page unlocks from advancements, dungeon visits and kills; toasts; drag/scroll (the GUI and page rendering are verified).
-- Crafting with the stations (recipe execution, JEI recipe categories, alchemy station and its upgrade); the GUIs open (see status above).
-- Enchanting table/anvil availability of the three custom enchantments, Bleeding proc rate, Explosive Flame exclusivity with Fire Aspect.
-- Curios effects: ring/necklace bonuses, jewelry bag key bind, glove dyeing, immunity accessories (equipping is verified).
+**Verified by the automated harness (`tools/porttest`, 2026-09-24, 42/46 checks; the rest were test artefacts):** portal ring formation, Overworld → Valoria travel through a real portal, return-portal generation and the trip back; kiln recipe execution (100 ticks, vanilla furnace as control); `/enchant` availability of bleeding / explosive_flame / accuracy on their supported items, exclusivity with Fire Aspect and refusal on unsupported items; Curios attribute bonuses applied and removed through the right-click and API paths (ruby, health and state-dependent eye necklaces); nihility damage at 60 %; dispenser behaviour for Valoria arrows; the music disc playing in a jukebox; painting variants; all 22 living entity types spawning; 15-second boss fights against a survival player and treasure-bag drops for Necromancer, Dryador, Firron and Wicked Crystal; crypt generation with loot containers; the `valoria:crypt` codex page unlocking when standing in a naturally generated crypt (dungeon-visit handler); boss-kill and dimension-visit codex unlocks.
+
+Still not exercised:
+
+- Boss music disc drop chance, King Crab, stat amplification per difficulty; boss spells were only observed not to crash for 15 s each.
+- Max-nihility action (KILL / TELEPORT variants), magma charge HUD, damage-indicator numbers versus 1.20.1.
+- Codex unlocks from advancements; toasts; drag/scroll.
+- JEI recipe categories, alchemy station and its upgrade, crusher crushing with a tool (needs a real click), keg/manipulator/soul-infuser recipe execution.
+- Enchanting-table roll rates and anvil combining (only `/enchant` was used), Bleeding proc rate in combat.
+- Curios: jewelry bag key bind, glove dyeing, immunity accessories; `/curios replace` issued from a script did nothing (Curios debug command, informational).
 - Items from 1.20.1 worlds (soul collectors, magma charge, poisoned weapons, rotten food, summon books) migrating through `custom_data`.
-- Supporter cloaks (`getSkin()` mixin), KubeJS recipe schemas, Jade/JER pages, HUD layer ordering, dispenser behaviours for throwables, strippable logs data map, painting variants, entity eye heights/riding offsets moved to the type builders.
+- Supporter cloaks (`getSkin()` mixin), KubeJS recipe schemas, Jade/JER pages, HUD layer ordering, strippable logs data map, entity eye heights/riding offsets moved to the type builders.
