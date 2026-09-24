@@ -4,6 +4,12 @@
 
 Сначала новые записи. Версия мода остаётся `1.21.1-1.0.4.2` (кодовая база Valoria 1.0.4.2 на момент порта); сборки порта обозначаются датой и коммитом. Каждое изменение в коде помечено комментарием `// PORT NOTE:` и описано в [PORTING.ru.md](PORTING.ru.md); открытые проблемы отслеживаются в [KNOWN_ISSUES.ru.md](KNOWN_ISSUES.ru.md).
 
+## 2026-09-24 — исправления, найденные тестом (станции, KubeJS)
+
+- **Исправлено**: бочка никогда не начинала варить при пустом выходном слоте. Её условие запуска начиналось с `output.isStackable()`; в 1.20.1 пустой стек сообщал размер стека воздуха (64), и условие было истинным, а в 1.21 у пустого стека нет компонента `max_stack_size` и `isStackable()` возвращает false. Теперь условие явно допускает пустой выходной слот (`KegBlockEntity.tick`). Поведение соответствует 1.20.1.
+- **Исправлено (ошибка оригинала)**: интеграция с KubeJS никогда не загружалась: `ValoriaKJSPlugin` и шесть схем рецептов существовали в оригинале, но в jar никогда не было файла-маркера `kubejs.plugins.txt`, по которому KubeJS находит плагины, поэтому `event.recipes.valoria.*` не существовало и на 1.20.1. Маркер теперь поставляется; в скриптах доступны `valoria.kiln(result, ingredient, experience?, cookingtime?)`, `valoria.jewelry(output, ingredients, time)`, `valoria.keg_brewery(output, ingredients, time)`, `valoria.crusher(loot_table, ingredients)`, `valoria.heavy_workbench(result, ingredients, group)` и `valoria.manipulator(output, core, cores, time, ingredients)` — см. `tools/porttest/porttest_recipes.js`.
+- Тест: 14 новых проверок (взаимодействие с дробилкой камня и её лут, срабатывание Bleeding, data map `neoforge:strippables`, разблокировка кодекса от предмета, действия KILL и TELEPORT при максимуме Нихилити, выполнение рецептов ювелирного стола / бочки / инфузора душ, выполнение добавленных через KubeJS рецептов в печи, ювелирном столе и дробилке). Полный прогон 56/56.
+
 ## 2026-09-24 — автоматический внутриигровой тест
 
 - **Добавлены** `tools/porttest/porttest.js` (серверный скрипт KubeJS) и конфигурация запуска `clientAuto` (`gradlew runClientAuto` сразу открывает мир `PortTest`). Скрипт выполняет 49 проверок командами и через игровой API и пишет строки `[PORTTEST] PASS/FAIL` — без мыши и клавиатуры. Последний полный прогон 49/49. Подробности и подводные камни — в `tools/porttest/README.md` (на английском); список проверенного перенесён в [KNOWN_ISSUES.ru.md](KNOWN_ISSUES.ru.md). Код мода в этой записи не менялся.

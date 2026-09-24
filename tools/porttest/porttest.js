@@ -630,7 +630,16 @@ at(MN, 'x max nihility set', (s, p) => {
 })
 at(MN + 80, 'x max nihility result', (s, p) => {
   let dead = p.health <= 0 || p.isDeadOrDying()
-  log(dead, 'reaching 95 %+ nihility triggers the max-nihility action (KILL) within 80 ticks', 'hp ' + before.maxNihHp + ' -> ' + p.health)
+  let action = 'KILL'
+  try { action = String(J('com.idark.valoria.core.config.ServerConfig').MAX_NIHILITY_ACTION.get()) } catch (e) { info('config read failed: ' + e) }
+  let dist = Math.sqrt(Math.pow(p.x - AX, 2) + Math.pow(p.z - AZ, 2))
+  let nih = 'n/a'
+  try { nih = p.getData(attClass().NIHILITY.get()).getAmount() } catch (e) {}
+  if (action == 'TELEPORT') {
+    log(!dead && dist > 100 && nih == 0, 'reaching 95 %+ nihility with maxNihilityAction=TELEPORT sends the player to the respawn point and resets nihility', 'alive=' + !dead + ' distance from arena=' + dist.toFixed(0) + ' nihility=' + nih + ' pos=' + p.x.toFixed(0) + ',' + p.y.toFixed(0) + ',' + p.z.toFixed(0))
+  } else {
+    log(dead, 'reaching 95 %+ nihility triggers the max-nihility action (' + action + ') within 80 ticks', 'hp ' + before.maxNihHp + ' -> ' + p.health)
+  }
   try { p.getData(attClass().NIHILITY.get()).setAmountFromServer(p, 0) } catch (e) { info('reset failed: ' + e) }
   ensureAlive(s, p)
   cmd(s, 'gamemode creative @a')
@@ -638,8 +647,103 @@ at(MN + 80, 'x max nihility result', (s, p) => {
   cmd(s, 'effect give @a minecraft:regeneration 99999 4 true')
 })
 
+// ---------------------------------------------------------------- station recipe execution through the block entities' item handlers,
+// plus recipes added by porttest_recipes.js through the KubeJS schemas
+const ST = FOCUS == 'x' ? 110 : bt + 450
+function be(s, x, y, z) { return s.getLevel('minecraft:overworld').getBlockEntity(new (J('net.minecraft.core.BlockPos'))(x, y, z)) }
+function outOf(s, x, y, z) { try { return String(be(s, x, y, z).itemOutputHandler.getStackInSlot(0)) } catch (e) { return 'ERR ' + e } }
+const STATIONS = { jewel: [2014, 1992], jewelKjs: [2016, 1992], kilnKjs: [2014, 1996], crusherKjs: [2016, 1996], keg: [2014, 2000], soul: [2016, 2000] }
+at(ST - 4, 'x schema probe', (s, p) => {
+  ['Kiln', 'Jewelry', 'Crusher', 'Keg', 'Manipulator', 'HeavyWorkbench'].forEach(n => {
+    try {
+      let sc = J('com.idark.valoria.core.compat.kubejs.schemas.' + n + 'RecipeSchema').SCHEMA
+      let ctors = sc.constructors()
+      let keyNames = []
+      sc.keys.forEach(k => keyNames.push(String(k.name) + (k.optional() ? '?' : '')))
+      info('schema ' + n + ': keys=' + keyNames.join(',') + ' includedKeys=' + sc.includedKeys.size() + ' minRequired=' + sc.minRequiredArguments() + ' constructor arg counts=' + String(ctors.keySet()) + ' generated=' + sc.constructorsGenerated())
+    } catch (e) { info('schema probe ' + n + ' failed: ' + e) }
+  })
+})
+at(ST - 2, 'x station recipe registry', (s, p) => {
+  try {
+    let kiln = s.recipeManager.getAllRecipesFor(J('com.idark.valoria.registries.item.recipe.KilnRecipe$Type').INSTANCE).size()
+    let RL = J('net.minecraft.resources.ResourceLocation')
+    let k = s.recipeManager.byKey(RL.parse('porttest:kiln_dirt_to_diamond')).isPresent()
+    let j = s.recipeManager.byKey(RL.parse('porttest:jewelry_dirt_to_emerald')).isPresent()
+    let c = s.recipeManager.byKey(RL.parse('porttest:crusher_dirt')).isPresent()
+    log(k && j && c, 'KubeJS schemas (valoria.kiln / jewelry / crusher) register recipes from porttest_recipes.js', 'kiln recipes=' + kiln + ' (15 data + 1 script) present: kiln=' + k + ' jewelry=' + j + ' crusher=' + c)
+  } catch (e) { log(false, 'recipe registry readable from script', '' + e) }
+})
+at(ST, 'x station setup', (s, p) => {
+  Object.keys(STATIONS).forEach(k => cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS[k][0] + ' ' + AY + ' ' + STATIONS[k][1] + ' minecraft:air'))
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.jewel[0] + ' ' + AY + ' ' + STATIONS.jewel[1] + ' valoria:jeweler_table')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.jewelKjs[0] + ' ' + AY + ' ' + STATIONS.jewelKjs[1] + ' valoria:jeweler_table')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.kilnKjs[0] + ' ' + AY + ' ' + STATIONS.kilnKjs[1] + ' valoria:kiln')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.crusherKjs[0] + ' ' + AY + ' ' + STATIONS.crusherKjs[1] + ' valoria:stone_crusher')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.keg[0] + ' ' + AY + ' ' + STATIONS.keg[1] + ' valoria:keg')
+  cmd(s, 'execute in minecraft:overworld run setblock ' + STATIONS.soul[0] + ' ' + AY + ' ' + STATIONS.soul[1] + ' valoria:soul_infuser')
+})
+at(ST + 2, 'x station fill', (s, p) => {
+  try {
+    let j = be(s, STATIONS.jewel[0], AY, STATIONS.jewel[1]); j.itemHandler.setStackInSlot(0, Item.of('valoria:empty_gazer')); j.itemHandler.setStackInSlot(1, Item.of('valoria:amber_gem'))
+    let jk = be(s, STATIONS.jewelKjs[0], AY, STATIONS.jewelKjs[1]); jk.itemHandler.setStackInSlot(0, Item.of('valoria:empty_gazer')); jk.itemHandler.setStackInSlot(1, Item.of('minecraft:dirt'))
+    cmd(s, 'execute in minecraft:overworld run item replace block ' + STATIONS.kilnKjs[0] + ' ' + AY + ' ' + STATIONS.kilnKjs[1] + ' container.1 with minecraft:coal')
+    cmd(s, 'execute in minecraft:overworld run item replace block ' + STATIONS.kilnKjs[0] + ' ' + AY + ' ' + STATIONS.kilnKjs[1] + ' container.0 with minecraft:dirt')
+    let kg = be(s, STATIONS.keg[0], AY, STATIONS.keg[1]); kg.itemHandler.setStackInSlot(0, Item.of('minecraft:sugar_cane')); kg.itemHandler.setStackInSlot(1, Item.of('valoria:bottle'))
+    let si = be(s, STATIONS.soul[0], AY, STATIONS.soul[1]); let collector = Item.of('valoria:soul_collector'); si.setSouls(collector, 1000); si.itemHandler.setStackInSlot(0, Item.of('valoria:void_crystal')); si.itemHandler.setStackInSlot(1, collector)
+    info('soul collector souls=' + si.getSouls(collector) + ' max=' + si.getMaxSouls(collector))
+    cmd(s, 'item replace entity @a weapon.mainhand with minecraft:dirt')
+  } catch (e) { log(false, 'x station fill', '' + e) }
+})
+at(ST + 5, 'x crusher kjs insert', (s, p) => {
+  try {
+    cmd(s, 'gamemode survival @a') // in survival the "no recipe" path drops the item back as an entity, so the two outcomes differ
+    let lvl = s.getLevel('minecraft:overworld'), pos = new (J('net.minecraft.core.BlockPos'))(STATIONS.crusherKjs[0], AY, STATIONS.crusherKjs[1]), state = lvl.getBlockState(pos)
+    state.getBlock().interact(state, lvl, pos, p, J('net.minecraft.world.InteractionHand').MAIN_HAND, hitOn(STATIONS.crusherKjs[0], AY, STATIONS.crusherKjs[1]))
+    cmd(s, 'item replace entity @a weapon.mainhand with minecraft:iron_pickaxe')
+  } catch (e) { log(false, 'x crusher kjs insert', '' + e) }
+})
+at(ST + 8, 'x crusher kjs crush', (s, p) => {
+  try {
+    let lvl = s.getLevel('minecraft:overworld'), pos = new (J('net.minecraft.core.BlockPos'))(STATIONS.crusherKjs[0], AY, STATIONS.crusherKjs[1]), state = lvl.getBlockState(pos)
+    let beforeData = String(block(s, 'minecraft:overworld', STATIONS.crusherKjs[0], AY, STATIONS.crusherKjs[1]).entityData)
+    state.getBlock().interact(state, lvl, pos, p, J('net.minecraft.world.InteractionHand').MAIN_HAND, hitOn(STATIONS.crusherKjs[0], AY, STATIONS.crusherKjs[1]))
+    before.crusherKjsBefore = beforeData
+  } catch (e) { log(false, 'x crusher kjs crush', '' + e) }
+})
+at(ST + 11, 'x crusher kjs result', (s, p) => {
+  let d = String(block(s, 'minecraft:overworld', STATIONS.crusherKjs[0], AY, STATIONS.crusherKjs[1]).entityData)
+  let drops = itemDrops(s)
+  let dirtBack = drops.indexOf('minecraft:dirt') >= 0
+  log(before.crusherKjsBefore && before.crusherKjsBefore.indexOf('minecraft:dirt') >= 0 && d.indexOf('minecraft:dirt') < 0 && !dirtBack, 'KubeJS-added crusher recipe (dirt) is accepted and crushed (no dirt handed back)', 'before=' + before.crusherKjsBefore + ' after=' + d + ' drops=' + (drops.length ? drops.join(',') : 'none'))
+  cmd(s, 'gamemode creative @a')
+  cmd(s, 'kill @e[type=minecraft:item]')
+  cmd(s, 'clear @a')
+})
+at(ST + 90, 'x kiln kjs result', (s, p) => {
+  let out = slotItem(block(s, 'minecraft:overworld', STATIONS.kilnKjs[0], AY, STATIONS.kilnKjs[1]).entityData, 2)
+  log(out.indexOf('minecraft:diamond') == 0, 'KubeJS-added kiln recipe smelts dirt -> diamond (60 ticks)', 'output: ' + out)
+})
+at(ST + 140, 'x jewelry results', (s, p) => {
+  let o = outOf(s, STATIONS.jewel[0], AY, STATIONS.jewel[1]), ok = outOf(s, STATIONS.jewelKjs[0], AY, STATIONS.jewelKjs[1])
+  log(o.indexOf('amber_golden_gazer') >= 0, 'jewelry table crafts empty_gazer + amber_gem -> amber_golden_gazer (100 ticks)', 'output=' + o)
+  log(ok.indexOf('minecraft:emerald') >= 0, 'KubeJS-added jewelry recipe crafts empty_gazer + dirt -> emerald (60 ticks)', 'output=' + ok)
+})
+at(ST + 450, 'x soul infuser result', (s, p) => {
+  let o = outOf(s, STATIONS.soul[0], AY, STATIONS.soul[1])
+  let s1 = 'n/a'
+  try { let b = be(s, STATIONS.soul[0], AY, STATIONS.soul[1]); s1 = String(b.itemHandler.getStackInSlot(1)) + ' souls=' + b.getSouls(b.itemHandler.getStackInSlot(1)) + ' progress=' + b.progress + '/' + b.progressMax } catch (e) { s1 = 'ERR ' + e }
+  log(o.indexOf('void_crystal') >= 0, 'soul infuser fills a void_crystal from a charged soul collector (400 ticks)', 'output=' + o + ' collector=' + s1)
+})
+at(ST + 660, 'x keg result', (s, p) => {
+  let o = outOf(s, STATIONS.keg[0], AY, STATIONS.keg[1])
+  let prog = 'n/a'
+  try { let b = be(s, STATIONS.keg[0], AY, STATIONS.keg[1]); prog = b.progress + '/' + b.progressMax + ' in=' + b.itemHandler.getStackInSlot(0) + ',' + b.itemHandler.getStackInSlot(1) } catch (e) { prog = 'ERR ' + e }
+  log(o.indexOf('coke_bottle') >= 0, 'keg brews sugar_cane + bottle -> coke_bottle (600 ticks)', 'output=' + o + ' ' + prog)
+})
+
 // ---------------------------------------------------------------- done
-at(MN + 100, 'done', (s, p) => {
+at(Math.max(MN + 100, ST + 680), 'done', (s, p) => {
   cmd(s, 'execute in minecraft:overworld run tp @a ' + AX + ' ' + AY + ' ' + AZ)
   cmd(s, 'gamemode creative @a')
   console.log(TAG + ' DONE ' + pass + '/' + total)

@@ -152,7 +152,12 @@ public class KegBlockEntity extends BlockEntity implements MenuProvider, Tickabl
         if(!level.isClientSide){
             Optional<KegRecipe> recipe = getCurrentRecipe();
             ItemStack output = this.itemOutputHandler.getStackInSlot(0);
-            if(recipe.isPresent() && output.isStackable() && output.getCount() < output.getMaxStackSize() && this.itemOutputHandler.isItemValid(0, output)){
+            // PORT NOTE (runtime fix, restores 1.20.1 behaviour): the original condition started with output.isStackable(). In
+            // 1.20.1 ItemStack.EMPTY.isStackable() was true (air stacked to 64), so an empty output slot allowed brewing; in 1.21
+            // the empty stack has no MAX_STACK_SIZE component and isStackable() is false, which silently disabled the keg
+            // whenever its output slot was empty (found by the in-game harness: progress stayed 0/0).
+            boolean outputFree = output.isEmpty() || (output.isStackable() && output.getCount() < output.getMaxStackSize() && this.itemOutputHandler.isItemValid(0, output));
+            if(recipe.isPresent() && outputFree){
                 increaseCraftingProgress();
                 startCraft = true;
                 setMaxProgress();

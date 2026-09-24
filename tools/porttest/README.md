@@ -15,7 +15,7 @@ and the script drives everything through commands and the game's Java API.
 
 `FOCUS = true` at the top of the script runs only the curio / nihility / natural-crypt sections for quick iteration.
 
-## What it checks (last full run 2026-09-24: 49/49)
+## What it checks (last full run 2026-09-24: 56/56)
 
 | Area | Check |
 |---|---|
@@ -34,7 +34,11 @@ and the script drives everything through commands and the game's Java API.
 | Bleeding | a Bleeding III sword applies the `valoria:bleeding` effect within 40 `Player.attack` hits |
 | Data maps | `neoforge:strippables` maps `shade_log` → `stripped_shade_log` |
 | Item codex unlock | holding a portal frame shard unlocks `valoria:valoria_portal` via the inventory scan |
-| Max nihility | 97 % nihility kills a survival player (default `maxNihilityAction = KILL`); the harness revives the player afterwards |
+| Max nihility | 97 % nihility kills a survival player (default `maxNihilityAction = KILL`); with `TELEPORT` in `config/valoria/server.toml` the check expects a teleport to the respawn point and a nihility reset instead; the harness revives the player afterwards |
+| Stations | jewelry table (empty_gazer + amber_gem → amber_golden_gazer), keg (sugar_cane + bottle → coke_bottle), soul infuser (charged soul collector fills a void_crystal), all through the block entities' item handlers |
+| KubeJS | `porttest_recipes.js` adds a kiln, a jewelry and a crusher recipe through the mod's schemas; the harness checks they exist in the recipe manager and that the kiln, jewelry table and crusher execute them |
+
+Run `porttest_recipes.js` alongside `porttest.js` (same folder) for the KubeJS rows.
 
 Informational lines (not counted): `/curios replace` from a script, structure references at a `/place`-d structure.
 

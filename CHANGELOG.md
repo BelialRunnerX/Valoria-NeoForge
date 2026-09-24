@@ -2,6 +2,12 @@
 
 Newest first. The mod version stays `1.21.1-1.0.4.2` (upstream Valoria 1.0.4.2 code base as of the port); port builds are identified by date and commit. Every code change carries a `// PORT NOTE:` comment and is described in [PORTING.md](PORTING.md); open problems are tracked in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). The original Forge 1.20.1 changelog follows below the divider.
 
+## 2026-09-24 — fixes found by the harness (stations, KubeJS)
+
+- **Fixed** the keg never brewing while its output slot was empty. Its start condition began with `output.isStackable()`; in 1.20.1 the empty stack reported air's stack size (64) so that was true, in 1.21 the empty stack has no `max_stack_size` component and `isStackable()` is false. The condition now accepts an empty output slot explicitly (`KegBlockEntity.tick`). Behaviour is the 1.20.1 one.
+- **Fixed (upstream bug)** the KubeJS integration never loading: `ValoriaKJSPlugin` and the six recipe schemas existed upstream but the jar never contained the `kubejs.plugins.txt` marker KubeJS uses to discover plugins, so `event.recipes.valoria.*` did not exist on 1.20.1 either. The marker is now shipped; scripts can use `valoria.kiln(result, ingredient, experience?, cookingtime?)`, `valoria.jewelry(output, ingredients, time)`, `valoria.keg_brewery(output, ingredients, time)`, `valoria.crusher(loot_table, ingredients)`, `valoria.heavy_workbench(result, ingredients, group)` and `valoria.manipulator(output, core, cores, time, ingredients)` — see `tools/porttest/porttest_recipes.js`.
+- Harness: 14 new checks (stone crusher interaction and loot, Bleeding proc, `neoforge:strippables` data map, item-based codex unlock, max-nihility KILL and TELEPORT actions, jewelry table / keg / soul infuser recipe execution, KubeJS-added recipes executing in the kiln, jewelry table and crusher). Full run 56/56.
+
 ## 2026-09-24 — automated in-game test harness
 
 - **Added** `tools/porttest/porttest.js` (KubeJS server script) and the `clientAuto` run configuration (`gradlew runClientAuto` quick-plays the `PortTest` world). The script drives 49 checks with commands and the game API and logs `[PORTTEST] PASS/FAIL` lines — no mouse or keyboard needed. Last full run 49/49. Details and gotchas in `tools/porttest/README.md`; the verified list moved into [KNOWN_ISSUES.md](KNOWN_ISSUES.md). No mod code changed in this entry.
