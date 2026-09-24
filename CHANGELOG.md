@@ -1,3 +1,25 @@
+# Changelog — NeoForge 1.21.1 port
+
+Newest first. The mod version stays `1.21.1-1.0.4.2` (upstream Valoria 1.0.4.2 code base as of the port); port builds are identified by date and commit. Every code change carries a `// PORT NOTE:` comment and is described in [PORTING.md](PORTING.md); open problems are tracked in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). The original Forge 1.20.1 changelog follows below the divider.
+
+## 2026-09-23 — first in-game test fixes
+
+- `1100cb1` **Fixed** "Exception in server tick loop: Unable to calculate boundingbox without pieces" a few seconds after joining a world: `OnDungeonVisitListener.isPlayerInStructure` (codex dungeon unlocks) and Tridot's dungeon music check now return false when the player is outside a matching structure. Requires Tridot `c957952` or newer.
+- `78cdfaa` **Fixed** "Failed to load registries" when pressing *Create World*: 24 number providers in 12 worldgen/dimension files converted from the 1.20 `{"value":{...}}` form to the 1.21 flat form; unknown block ids that 1.20.1 silently mapped to air (`valoria:gravel`, `valoria:soul_root`, `minecraft:void_*` in `processor_list/valoria_misc`) corrected to the intended blocks.
+- `78cdfaa` **Fixed** dedicated-server crash "Attempted to load class LocalPlayer for invalid dist DEDICATED_SERVER" (`PhantasmBow`, `MagmaPacket`, `NihilityPacket` now use the sided proxy).
+- `78cdfaa` **Fixed** 15 kiln recipes not loading (`"result"` must be `{"id": ...}` for vanilla's cooking codec), the `jade_crossbow`/`crimtane_axe` heavy-workbench recipes (upstream typos), the `no_pots` biome tag (pre-1.19 tag names), the `candy_corn_from_mobs_effect` loot modifier (`killer` → `attacker`), and registered a spawn placement for `flesh_sentinel`.
+- `e07bb7c` **Fixed** first-launch crash "Ability Type valoria:description is already registered!": root cause was a model-key error in Tridot that made Minecraft re-run mod loading; `ValoriaLayers` keg/sphere/cyst models and their renderers now use matching `standalone` keys, and `AbilityRegistry.register` tolerates a repeated pass.
+
+## 2026-09-23 — initial port (`f0dee7d`)
+
+- Forge 1.20.1 / Java 17 → NeoForge 21.1.251 / Java 21, ModDevGradle 2.0.147, Parchment 2024.11.17; depends on the [Tridot NeoForge port](https://github.com/BelialRunnerX/Tridot-NeoForge) `1.21.1-1.0.169`, Curios 9.5.1, GeckoLib 4.9.3.
+- Items (NBT → data components), effects, enchantments (data-driven), entities, networking (`CustomPacketPayload`), capabilities → attachments, client rendering/GUI, portal (`Portal`/`DimensionTransition`), datagen, compat (JEI 19, Jade 15, JER 1.6, KubeJS 2101) and the whole data pack (1.21 folder layout, `c:` tags, recipe/loot formats) ported; nothing removed.
+- Repository metadata (issue tracker, update JSON, homepage, in-game update link, contributing guide) points at this port so the original author is not contacted about it.
+
+---
+
+# Upstream changelog (Forge 1.20.1, by the original authors)
+
 # 1.1.0
 
 # **Added**
