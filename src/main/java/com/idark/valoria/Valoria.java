@@ -217,6 +217,9 @@ public class Valoria{
             event.register(EntityTypeRegistry.KING_CRAB.get(), SpawnPlacementTypes.ON_GROUND, Types.MOTION_BLOCKING_NO_LEAVES, KingCrabEntity::checkMonsterSpawnRules, RegisterSpawnPlacementsEvent.Operation.OR);
             event.register(EntityTypeRegistry.WICKED_SCORPION.get(), SpawnPlacementTypes.ON_GROUND, Types.MOTION_BLOCKING_NO_LEAVES, WickedScorpion::checkMonsterSpawnRules, RegisterSpawnPlacementsEvent.Operation.OR);
             event.register(EntityTypeRegistry.SCAVENGER.get(), SpawnPlacementTypes.ON_GROUND, Types.MOTION_BLOCKING_NO_LEAVES, Scavenger::checkAnimalSpawnRules, RegisterSpawnPlacementsEvent.Operation.OR);
+            // PORT NOTE: flesh_sentinel has biome spawn entries but never had a SpawnPlacements entry; 1.20.1 spawned it without
+            // restrictions and NeoForge logs an error for that case, so the same "no restrictions" behaviour is registered explicitly.
+            event.register(EntityTypeRegistry.FLESH_SENTINEL.get(), SpawnPlacementTypes.NO_RESTRICTIONS, Types.MOTION_BLOCKING_NO_LEAVES, (type, level, spawnType, pos, random) -> true, RegisterSpawnPlacementsEvent.Operation.OR);
         }
 
         @SubscribeEvent

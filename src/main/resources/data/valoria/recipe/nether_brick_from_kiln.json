@@ -5,5 +5,7 @@
   },
   "experience": 0.5,
   "cookingtime": 100,
-  "result": "minecraft:nether_brick"
+  "result": {
+    "id": "minecraft:nether_brick"
+  }
 }

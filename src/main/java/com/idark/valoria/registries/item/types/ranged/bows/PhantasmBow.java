@@ -5,7 +5,6 @@ import com.idark.valoria.registries.*;
 import com.idark.valoria.registries.entity.projectile.*;
 import com.idark.valoria.util.*;
 import net.minecraft.*;
-import net.minecraft.client.*;
 import net.minecraft.network.chat.*;
 import net.minecraft.sounds.*;
 import net.minecraft.stats.*;
@@ -71,7 +70,10 @@ public class PhantasmBow extends ConfigurableBowItem implements TooltipComponent
     @Override
     public int getBarWidth(ItemStack stack) {
         if(isVisible(stack)){
-            Player plr = Minecraft.getInstance().player;
+            // PORT NOTE: Minecraft.getInstance().player (a LocalPlayer) assigned to Player made the JVM verifier load the client-only
+            // LocalPlayer class when this item class was loaded during registration, crashing dedicated servers. The sided proxy
+            // returns the same player on the client and null on the server.
+            Player plr = Valoria.proxy.getPlayer();
             if(plr != null){
                 int current = plr.getUseItemRemainingTicks();
                 int used = this.getUseDuration(stack, plr) - current;

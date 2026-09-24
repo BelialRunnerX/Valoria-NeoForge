@@ -5,10 +5,9 @@ import net.minecraft.network.codec.*;
 import net.minecraft.network.protocol.common.custom.*;
 import net.neoforged.neoforge.network.handling.*;
 import com.idark.valoria.core.capability.*;
-import net.minecraft.client.*;
-import net.minecraft.client.player.*;
 import net.minecraft.network.*;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.*;
 import java.util.function.*;
@@ -45,7 +44,9 @@ public class MagmaPacket implements CustomPacketPayload{ // PORT NOTE: SimpleCha
 
     public void handle(IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            LocalPlayer player = Minecraft.getInstance().player;
+            // PORT NOTE: client player fetched through the sided proxy - referencing LocalPlayer here made the JVM verifier load the
+            // client-only class when the payload classes were registered on a dedicated server.
+            Player player = Valoria.proxy.getPlayer();
             if(player == null) return;
             IMagmaLevel.of(player).ifPresent(m -> {
                 m.setMaxAmount(this.max);

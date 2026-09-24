@@ -5,5 +5,7 @@
   },
   "experience": 0.15,
   "cookingtime": 120,
-  "result": "valoria:lithic_rune"
+  "result": {
+    "id": "valoria:lithic_rune"
+  }
 }

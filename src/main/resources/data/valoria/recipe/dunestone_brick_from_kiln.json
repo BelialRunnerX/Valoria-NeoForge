@@ -5,5 +5,7 @@
   },
   "experience": 0.5,
   "cookingtime": 100,
-  "result": "valoria:dunestone_brick"
+  "result": {
+    "id": "valoria:dunestone_brick"
+  }
 }

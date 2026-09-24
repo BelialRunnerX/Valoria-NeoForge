@@ -5,5 +5,7 @@
   },
   "experience": 0.5,
   "cookingtime": 100,
-  "result": "valoria:ambane_stone_brick"
+  "result": {
+    "id": "valoria:ambane_stone_brick"
+  }
 }

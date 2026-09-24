@@ -5,5 +5,7 @@
   },
   "experience": 0.5,
   "cookingtime": 100,
-  "result": "minecraft:glass"
+  "result": {
+    "id": "minecraft:glass"
+  }
 }
