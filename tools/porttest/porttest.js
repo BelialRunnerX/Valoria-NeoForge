@@ -27,6 +27,7 @@ function info(msg) { console.log(TAG + ' INFO ' + msg) }
 function at(tick, name, fn) {
   if (FOCUS == 'focus' && SKIP_IN_FOCUS.test(name)) return
   if (FOCUS == 'x' && !/^(x |setup|arena|done)/.test(name)) return
+  if (FOCUS == 'boss' && !/^(boss |setup|arena|done)/.test(name)) return
   steps.push({ tick: tick, name: name, fn: fn })
 }
 function ensureAlive(s, p) {
@@ -80,6 +81,8 @@ at(5, 'setup', (s, p) => {
   cmd(s, 'execute in minecraft:overworld run fill 1975 ' + (AY - 1) + ' 1975 2025 ' + (AY - 1) + ' 2025 minecraft:stone')
   cmd(s, 'execute in minecraft:overworld run fill 1975 ' + AY + ' 1975 2025 ' + (AY + 25) + ' 2025 minecraft:air')
   cmd(s, 'execute in minecraft:overworld run tp @a ' + AX + ' ' + AY + ' ' + AZ + ' 0 0')
+  // leftovers from earlier runs (persistent test mobs, dropped station contents) would skew entity/loot checks
+  cmd(s, 'execute in minecraft:overworld run kill @e[type=!minecraft:player,x=1950,y=100,z=1950,dx=100,dy=120,dz=100]')
   cmd(s, 'effect give @a minecraft:resistance 99999 4 true')
   cmd(s, 'effect give @a minecraft:regeneration 99999 4 true')
   cmd(s, 'effect give @a minecraft:night_vision 99999 0 true')
@@ -397,7 +400,9 @@ const BOSSES = [
   { id: 'wicked_crystal', loot: 'valoria:wicked_crystal_treasure_bag' }
 ]
 let bt = 360
-BOSSES.forEach(b => {
+// 'boss' focus mode repeats the Necromancer to chase the intermittent missing treasure bag
+const BOSS_RUNS = FOCUS == 'boss' ? [BOSSES[0], BOSSES[0], BOSSES[0], BOSSES[0]] : BOSSES
+BOSS_RUNS.forEach(b => {
   const start = bt
   at(start, 'boss ' + b.id + ' summon', (s, p) => {
     ensureAlive(s, p)
