@@ -24,8 +24,11 @@ public class ValoriaLayers{
     public static ModelLayerLocation HANDS_LAYER_SLIM = new ModelLayerLocation(Valoria.loc("hands_slim"), "main");
     public static ModelLayerLocation BELT_LAYER = new ModelLayerLocation(Valoria.loc("belt"), "main");
     public static ModelLayerLocation BAG_LAYER = new ModelLayerLocation(Valoria.loc("jewelry_bag"), "main");
-    public static ModelResourceLocation KEG_MODEL = ModelResourceLocation.standalone(Valoria.loc("keg_barrel"));
-    public static ModelResourceLocation SPHERE = ModelResourceLocation.standalone(Valoria.loc("elemental_sphere"));
-    public static ModelResourceLocation CYST = ModelResourceLocation.standalone(Valoria.loc("cyst"));
+    // PORT NOTE: 1.20.1 registered these as ModelResourceLocation(id, "") which resolved through blockstates/<id>.json
+    // ("" variant -> valoria:block/<id>). NeoForge 1.21 side-loaded models must be "standalone" and load models/<path>.json
+    // directly, so the keys point at the block model files the blockstates used to redirect to.
+    public static ModelResourceLocation KEG_MODEL = ModelResourceLocation.standalone(Valoria.loc("block/keg_barrel"));
+    public static ModelResourceLocation SPHERE = ModelResourceLocation.standalone(Valoria.loc("block/elemental_sphere"));
+    public static ModelResourceLocation CYST = ModelResourceLocation.standalone(Valoria.loc("block/cyst"));
     public static ModelLayerLocation THE_FALLEN_COLLECTOR_ARMOR_LAYER = addLayer(Valoria.ID, "the_fallen_collector_armor_layer");
 }

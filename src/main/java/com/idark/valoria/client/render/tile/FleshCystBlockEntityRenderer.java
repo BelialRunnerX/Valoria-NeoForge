@@ -12,7 +12,7 @@ import net.minecraft.world.item.*;
 import pro.komaru.tridot.client.*;
 
 public class FleshCystBlockEntityRenderer implements BlockEntityRenderer<FleshCystBlockEntity>{
-    public static final ModelResourceLocation CYST = new ModelResourceLocation(Valoria.loc("cyst"), "");
+    public static final ModelResourceLocation CYST = com.idark.valoria.client.ValoriaLayers.CYST; // PORT NOTE: must match the key registered in ModelEvent.RegisterAdditional (standalone variant)
 
     public FleshCystBlockEntityRenderer(){
     }

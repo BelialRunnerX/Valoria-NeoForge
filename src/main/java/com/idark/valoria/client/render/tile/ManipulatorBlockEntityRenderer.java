@@ -13,7 +13,7 @@ import net.minecraft.world.item.*;
 import pro.komaru.tridot.client.*;
 
 public class ManipulatorBlockEntityRenderer implements BlockEntityRenderer<ManipulatorBlockEntity>{
-    public static final ModelResourceLocation SPHERE = new ModelResourceLocation(Valoria.loc("elemental_sphere"), "");
+    public static final ModelResourceLocation SPHERE = com.idark.valoria.client.ValoriaLayers.SPHERE; // PORT NOTE: must match the key registered in ModelEvent.RegisterAdditional (standalone variant)
 
     public ManipulatorBlockEntityRenderer(){
     }

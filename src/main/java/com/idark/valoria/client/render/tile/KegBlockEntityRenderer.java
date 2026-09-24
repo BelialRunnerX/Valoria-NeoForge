@@ -15,7 +15,7 @@ import pro.komaru.tridot.client.*;
 
 public class KegBlockEntityRenderer implements BlockEntityRenderer<KegBlockEntity>{
 
-    public static final ModelResourceLocation KEG_BARREL = new ModelResourceLocation(Valoria.loc("keg_barrel"), "");
+    public static final ModelResourceLocation KEG_BARREL = com.idark.valoria.client.ValoriaLayers.KEG_MODEL; // PORT NOTE: must match the key registered in ModelEvent.RegisterAdditional (standalone variant)
 
     public KegBlockEntityRenderer(){
     }

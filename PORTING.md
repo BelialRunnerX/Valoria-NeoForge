@@ -119,6 +119,13 @@ Runtime problems found and fixed while booting datagen (all documented in the ph
 | Mixins | `AttributeMixin` casts `Attributes.MAX_HEALTH.value()` (the constants are `Holder<Attribute>` now; the holder cast threw `ClassCastException` in `Attributes.<clinit>` on the first datagen boot). `LivingEntityMixin` injects into `defineSynchedData(SynchedEntityData.Builder)` using `builder.define`; `AbstractClientPlayerMixin` retargeted from the removed `getCloakTextureLocation()` to `getSkin()` (returns a `PlayerSkin` copy with the supporter cape). `ThrownSpearRenderer` uses `ModelResourceLocation.inventory`. Targets verified against 1.21.1 sources: `RangedAttribute.maxValue`, `Mob.getAmbientSound`, `LootTable.pools`, `LivingEntity.tick/hurt/defineSynchedData`, `HalfTransparentBlock.skipRendering`, `ClientLevel.getSkyColor`. |
 | Model JSON | `forge_data` → `neoforge_data` (glow faces) and `forge:item_layers` → `neoforge:item_layers` (NeoForge throws on the old key). |
 
+### Runtime fixes from the first client launch (CurseForge instance, 2026-09-23)
+
+| Change | Detail |
+|---|---|
+| Side-loaded model keys | Tridot's skin models were registered with the `inventory` variant, which NeoForge's `ModelEvent.RegisterAdditional` rejects ("Side-loaded models must use the 'standalone' variant"). Minecraft then dropped the resource packs and re-ran mod loading, so `FMLCommonSetupEvent` fired twice and `AbilityRegistry` threw "already registered". Fixed in Tridot (see its PORTING.md) and here: `ValoriaLayers.KEG_MODEL/SPHERE/CYST` are `standalone(valoria:block/<name>)` (1.20.1 used the `""` variant, resolved through `blockstates/<name>.json` to the same block models), and the keg/manipulator/flesh-cyst renderers now use those constants instead of their own `new ModelResourceLocation(id, "")` keys, which would never have matched. `_in_hand`, `_pulling_*`, `_arrow`, `_firework` and `skin/*` models resolve through Tridot's `standalone(valoria:item/...)` keys, same files as before. |
+| Ability registry | `AbilityRegistry.register` is idempotent for the same `AbilityType` instance (a repeated common-setup pass no longer crashes); a different type claiming an existing id is still rejected. |
+
 ## Phase 8 — dimension & portal
 
 | Change | Detail |
