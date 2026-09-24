@@ -2,6 +2,15 @@
 
 Newest first. The mod version stays `1.21.1-1.0.4.2` (upstream Valoria 1.0.4.2 code base as of the port); port builds are identified by date and commit. Every code change carries a `// PORT NOTE:` comment and is described in [PORTING.md](PORTING.md); open problems are tracked in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). The original Forge 1.20.1 changelog follows below the divider.
 
+## 2026-09-24 — fixes from the maintainer's own play test
+
+Tested by driving the dev client directly (creative world, `/give`/`/summon`/`/setblock`, screenshots, log review). Requires the Tridot port at `ded8025` or newer.
+
+- `ec302a7` **Fixed** the Stone Crusher, Firework Tube and Cup ignoring right-clicks. Their `use(BlockState, Level, BlockPos, Player, InteractionHand, BlockHitResult)` methods had no `@Override`; `Block#use` no longer exists in 1.21, so they compiled as unused overloads and never ran. They are now reached through `useWithoutItem`/`useItemOn`. The same sweep found no other dead overloads in Valoria or Tridot (checked ~60 renamed 1.20→1.21 signatures).
+- `ec302a7` **Fixed** `ValoriaPortalFrame.isPathfindable` (same dead-overload pattern; mobs could path through the frame) and added `valoria:sorcerer` to `#minecraft:undead` (upstream returned `MobType.UNDEAD` for it; the other undead/arthropod mobs were already tagged).
+- Tridot `ded8025` **Fixed** the Phantasm Bow (and every other Tridot arrow) failing server-side with `NullPointerException: this.arrowItem is null`; nothing was fired.
+- Tridot `7e92bd1` **Fixed** the client crash when opening the Codex ("Rendering screen … particle.sprite is null") and the `NullPointerException` in the curio attribute tooltip while JEI indexed items.
+
 ## 2026-09-23 — first in-game test fixes
 
 - `1100cb1` **Fixed** "Exception in server tick loop: Unable to calculate boundingbox without pieces" a few seconds after joining a world: `OnDungeonVisitListener.isPlayerInStructure` (codex dungeon unlocks) and Tridot's dungeon music check now return false when the player is outside a matching structure. Requires Tridot `c957952` or newer.

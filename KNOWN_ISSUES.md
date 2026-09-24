@@ -4,9 +4,11 @@ Status legend: **Open** (needs a fix), **Upstream** (present in the original For
 
 ## Open
 
-_None known at the moment._
+- **Cosmetic:** every launch logs `Configuration file …\valoria\client.toml is not correct. Correcting` (and the same for `common.toml`) although the rewritten file is identical. Harmless; cause not yet found.
+- **Cosmetic:** creating or first opening a world shows vanilla's one-time "These settings are using experimental features" confirmation. Vanilla flags any world with a dimension beyond the three built-in ones (`WorldDimensions.bake`); NeoForge only remembers the answer per world. Not a Valoria bug; the world is fine.
+- **Cosmetic:** JEI warns "3 duplicate items were found in 'Valoria - Tools' creative tab" — the tab is filled by the same tag predicates as upstream; duplicates are de-duplicated by JEI.
 
-**Test status (2026-09-23):** working build, not fully validated. The client starts, creates and loads worlds, and basic play works (moving around the overworld, opening the starter bundle, codex). A dedicated server boots and generates a world with a clean log. Systematic play-testing of the mechanics below has not started yet — see "Unverified in game".
+**Test status (2026-09-24):** working build, not fully validated. Verified in a creative test world by the maintainer: world creation/loading; Codex GUI and pages; curios equipping (right-click and Curios menu) and the nihility meter rising in survival inside Valoria; teleporting into the Valoria dimension (sky, fog, ambient particles, terrain); summoning Necromancer, Wicked Crystal, Dryador and Firron (Tridot boss bars with per-boss styling, Necromancer music toast, Firron spawn cutscene, GeckoLib model); GUIs of kiln, jewelry table, heavy workbench (including 2×2 placement from the item), soul infuser, elemental manipulator and keg; stone crusher item in/out; firework tube; katana dash and scythe blade abilities; Phantasm Bow; `/locate` finds crypt, medium crypt, necromancer crypt, sand ruin and crystallized deep ruins in the Overworld and flesh altar, fractured skull, giant ribs, monstrosity skull/spine, taint spike and corrupted well in Valoria; JEI indexing and Jade block tooltips. A dedicated server boots with a clean log. Everything else is still listed under "Unverified in game".
 
 ## Missing or inert on 1.21.1
 
@@ -44,14 +46,14 @@ _None known at the moment._
 
 ## Unverified in game
 
-- Portal travel Overworld ⇄ Valoria (new `Portal`/`DimensionTransition` path), portal re-use and spawn placement.
-- 1.20.1 structure NBT templates load through vanilla's data fixer; structure contents/loot have not been eyeballed yet.
-- Bosses: Necromancer (all spells, music disc, boss bar), Dryador, Firron, Wicked Crystal, King Crab; stat amplification per difficulty.
-- Nihility system (meter, damage scaling, max-nihility action, teleport variant) and magma charge HUD.
+- Portal travel Overworld ⇄ Valoria through an actual portal (new `Portal`/`DimensionTransition` path), portal re-use and spawn placement — only `/execute in` teleports were tested.
+- 1.20.1 structure NBT templates load through vanilla's data fixer; structures are located by `/locate`, but their interiors and loot have not been eyeballed yet.
+- Boss fights: spells, AI, loot and the music disc drop for Necromancer, Dryador, Firron, Wicked Crystal, King Crab; stat amplification per difficulty (summoning, boss bars and the Firron cutscene are verified).
+- Nihility damage scaling, max-nihility action and its teleport variant, magma charge HUD (the meter itself is verified).
 - Damage pipeline: nihility damage scaling and damage indicators now hook `LivingIncomingDamageEvent` (both the old attack and hurt handlers run at that point); numbers should be compared with 1.20.1.
-- Codex: page unlocks from advancements, dungeon visits and kills; toasts; drag/scroll.
-- Crafting stations with JEI: kiln, heavy workbench, alchemy station and upgrade, crusher, jewelry, keg, manipulator, soul infuser.
+- Codex: page unlocks from advancements, dungeon visits and kills; toasts; drag/scroll (the GUI and page rendering are verified).
+- Crafting with the stations (recipe execution, JEI recipe categories, alchemy station and its upgrade); the GUIs open (see status above).
 - Enchanting table/anvil availability of the three custom enchantments, Bleeding proc rate, Explosive Flame exclusivity with Fire Aspect.
-- Curios: rings, necklaces, jewelry bag key bind, glove dyeing, immunity accessories.
+- Curios effects: ring/necklace bonuses, jewelry bag key bind, glove dyeing, immunity accessories (equipping is verified).
 - Items from 1.20.1 worlds (soul collectors, magma charge, poisoned weapons, rotten food, summon books) migrating through `custom_data`.
 - Supporter cloaks (`getSkin()` mixin), KubeJS recipe schemas, Jade/JER pages, HUD layer ordering, dispenser behaviours for throwables, strippable logs data map, painting variants, entity eye heights/riding offsets moved to the type builders.
