@@ -4,7 +4,9 @@ Status legend: **Open** (needs a fix), **Upstream** (present in the original For
 
 ## Open
 
-_None known at the moment. Current test status: the client reaches the title screen, creates a world, joins it, and the starter bundle/codex work. A dedicated server boots and generates a world with a clean log. Everything past that point is still being play-tested — see "Unverified in game"._
+_None known at the moment._
+
+**Test status (2026-09-23):** working build, not fully validated. The client starts, creates and loads worlds, and basic play works (moving around the overworld, opening the starter bundle, codex). A dedicated server boots and generates a world with a clean log. Systematic play-testing of the mechanics below has not started yet — see "Unverified in game".
 
 ## Missing or inert on 1.21.1
 

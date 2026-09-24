@@ -7,7 +7,7 @@ Every non-trivial rewrite is listed here; code sites carry a matching `// PORT N
 Items under **Unverified at runtime** compile but could not be exercised without launching the game.
 Items under **Config behaviour changes** are options whose effect may differ from 1.20.1.
 
-Build status: `gradlew.bat build` passes (artifact `build/libs/Valoria-1.21.1-1.0.4.2.jar`) and `gradlew.bat runData` boots the full mod set (NeoForge, Tridot, Curios, GeckoLib, JEI, Jade, JER, KubeJS, Dummmmmmy/Moonlight) through registration and regenerates `src/generated/resources` (3.7k files; identical set to the 1.20.1 output apart from `music_discs.json` and the new tier/enchantable/wolf_food/dyeable tags). Launch with `gradlew.bat runClient`.
+Status (2026-09-23): **working build, not fully validated** — client starts, creates/loads worlds, basic play works, dedicated server boots clean; gameplay systems still need play-testing (see KNOWN_ISSUES.md). Build status: `gradlew.bat build` passes (artifact `build/libs/Valoria-1.21.1-1.0.4.2.jar`) and `gradlew.bat runData` boots the full mod set (NeoForge, Tridot, Curios, GeckoLib, JEI, Jade, JER, KubeJS, Dummmmmmy/Moonlight) through registration and regenerates `src/generated/resources` (3.7k files; identical set to the 1.20.1 output apart from `music_discs.json` and the new tier/enchantable/wolf_food/dyeable tags). Launch with `gradlew.bat runClient`.
 
 Runtime problems found and fixed while booting datagen (all documented in the phase tables): Attribute holder cast in `AttributeMixin`, NeoForge event-bus strictness (no-listener `register`, static handlers, abstract `InputEvent`), items resolving particle holders eagerly, wrong-loader jars from Modrinth (Moonlight, JER), missing JitPack repository for KubeJS.
 
