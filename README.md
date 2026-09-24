@@ -12,7 +12,7 @@ This repository is a **community port of [Valoria](https://github.com/IriDark/Va
 
 ## Status
 
-- **Working build, not fully validated.** The client starts, creates and loads worlds, and basic play (moving around, starter bundle, codex) works; a dedicated server boots and generates a world with a clean log. Bosses, the Valoria dimension, crafting stations, enchantments and the rest of the gameplay systems have not been play-tested yet. Treat the builds as beta and expect bugs in untested areas.
+- **Working build, not fully validated.** The client starts, creates and loads worlds; a dedicated server boots with a clean log. Verified by hand so far (2026-09-24): the Codex, curios and the nihility meter, the Valoria dimension, summoning the four bosses (boss bars, music, Firron cutscene), the crafting-station GUIs, stone crusher, weapon abilities and the Phantasm Bow, structure placement via `/locate`, JEI/Jade. Boss fights, recipe execution, enchantments, portal travel and structure interiors have not been play-tested yet — see [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Treat the builds as beta and expect bugs in untested areas.
 - `./gradlew build` produces `Valoria-1.21.1-1.0.4.2.jar`; the data generator boots the complete mod set (NeoForge, Tridot, Curios, GeckoLib, JEI, Jade, JER, KubeJS, Dummmmmmy).
 - **[CHANGELOG.md](CHANGELOG.md)** lists every port fix by commit, **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)** lists open, upstream-inherited and not-yet-verified items, and [PORTING.md](PORTING.md) documents each rewrite. Please check the known-issues list before reporting.
 
