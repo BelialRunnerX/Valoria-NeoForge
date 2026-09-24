@@ -10,6 +10,10 @@ This repository is a **community port of [Valoria](https://github.com/IriDark/Va
 - **Do not contact the original author with concerns about this port.** The maintainer of *this* repository is responsible for it. Bugs, crashes, or questions about the NeoForge 1.21.1 build belong in this repository's issue tracker, not in the upstream Valoria repository, its Discord, or its wiki.
 - You may use this port on the same terms as the original mod: whatever **licensing and permissions the original Valoria requires still apply here**. The repository ships the original `LICENSE` file unchanged (**code: GNU GPL-3.0; assets: Creative Commons Attribution-NonCommercial 4.0 International**). If you redistribute or build on this port, you must keep complying with those licenses and with any conditions the original author has set.
 
+## Download
+
+Jars are published only on this repository's [Releases page](https://github.com/BelialRunnerX/Valoria-NeoForge/releases) (current: `v1.21.1-1.0.4.2`, marked pre-release). You also need the [Tridot port release](https://github.com/BelialRunnerX/Tridot-NeoForge/releases), Curios and GeckoLib (versions below). The port is not on CurseForge or Modrinth.
+
 ## Status
 
 - **Working build, not fully validated.** The client starts, creates and loads worlds; a dedicated server boots with a clean log. Verified by hand so far (2026-09-24): the Codex, curios and the nihility meter, the Valoria dimension, summoning the four bosses (boss bars, music, Firron cutscene), the crafting-station GUIs, stone crusher, weapon abilities and the Phantasm Bow, structure placement via `/locate`, JEI/Jade. An automated in-game harness (`tools/porttest`) additionally verified portal travel both ways, kiln recipe execution, enchantment availability, Curios attribute bonuses, nihility damage, four boss fights with loot, entity spawning and the crypt codex unlock. What remains untested is listed in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Treat the builds as beta and expect bugs in untested areas.
